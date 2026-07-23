@@ -34,13 +34,20 @@ type VaultPayload = {
 };
 
 type VaultRow = {
+  owner_key_hash: string;
   payload: string;
   record_count: number;
   updated_at: string;
 };
 
+type NoteKeyRow = {
+  owner_key_hash: string;
+};
+
 const MAX_RECORDS = 250;
 const MAX_PAYLOAD_BYTES = 900_000;
+const MAX_NOTE_LENGTH = 20_000;
+const MAX_NOTE_APPEND = 8_000;
 const KEY_PATTERN = /^ctv1_[A-Za-z0-9_-]{43}$/;
 const encoder = new TextEncoder();
 let schemaReady: Promise<void> | null = null;
@@ -48,7 +55,7 @@ let schemaReady: Promise<void> | null = null;
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Authorization, Content-Type",
-  "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, PUT, PATCH, OPTIONS",
   "Access-Control-Max-Age": "86400",
   "Cache-Control": "no-store",
 };
@@ -106,7 +113,7 @@ function sanitizeRecord(value: unknown): TavernRecord | null {
     guest: text(source.guest, 24) || "客人",
     bartenderLine: text(source.bartenderLine, 500),
     items,
-    note: text(source.note, 20_000),
+    note: text(source.note, MAX_NOTE_LENGTH),
     noteUpdatedAt:
       typeof source.noteUpdatedAt === "string"
         ? validDate(source.noteUpdatedAt, now)
@@ -153,6 +160,42 @@ function filterRecords(records: TavernRecord[], query: string) {
   });
 }
 
+function timestamp(value: string | null) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+async function keyBelongsToAnotherVault(
+  d1: D1Database,
+  keyHash: string,
+  ownerKeyHash: string,
+) {
+  const [vaultCollision, noteCollision] = await Promise.all([
+    d1
+      .prepare(
+        `SELECT owner_key_hash
+         FROM tavern_vaults
+         WHERE (owner_key_hash = ?1 OR read_key_hash = ?1)
+           AND owner_key_hash <> ?2
+         LIMIT 1`,
+      )
+      .bind(keyHash, ownerKeyHash)
+      .first(),
+    d1
+      .prepare(
+        `SELECT owner_key_hash
+         FROM tavern_note_keys
+         WHERE note_key_hash = ?1
+           AND owner_key_hash <> ?2
+         LIMIT 1`,
+      )
+      .bind(keyHash, ownerKeyHash)
+      .first(),
+  ]);
+  return Boolean(vaultCollision || noteCollision);
+}
+
 function storageError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes("no such table")) {
@@ -179,6 +222,18 @@ function ensureVaultSchema() {
         d1.prepare(
           `CREATE UNIQUE INDEX IF NOT EXISTS tavern_vaults_read_key_hash_idx
            ON tavern_vaults (read_key_hash)`,
+        ),
+        d1.prepare(
+          `CREATE TABLE IF NOT EXISTS tavern_note_keys (
+             note_key_hash TEXT PRIMARY KEY NOT NULL,
+             owner_key_hash TEXT NOT NULL,
+             created_at TEXT NOT NULL,
+             updated_at TEXT NOT NULL
+           )`,
+        ),
+        d1.prepare(
+          `CREATE UNIQUE INDEX IF NOT EXISTS tavern_note_keys_owner_key_hash_idx
+           ON tavern_note_keys (owner_key_hash)`,
         ),
       ])
       .then(() => undefined)
@@ -208,7 +263,7 @@ export async function GET(request: Request) {
     const keyHash = await hashKey(key);
     const row = await getD1()
       .prepare(
-        `SELECT payload, record_count, updated_at
+        `SELECT owner_key_hash, payload, record_count, updated_at
          FROM tavern_vaults
          WHERE owner_key_hash = ?1 OR read_key_hash = ?1
          LIMIT 1`,
@@ -221,20 +276,22 @@ export async function GET(request: Request) {
     }
 
     const payload = JSON.parse(row.payload) as VaultPayload;
+    const isOwner = row.owner_key_hash === keyHash;
     const url = new URL(request.url);
     const query = text(url.searchParams.get("q"), 80);
     const requestedLimit = Number.parseInt(
       url.searchParams.get("limit") || "10",
       10,
     );
+    const limitCap = isOwner ? MAX_RECORDS : 25;
     const limit = Number.isFinite(requestedLimit)
-      ? Math.min(25, Math.max(1, requestedLimit))
+      ? Math.min(limitCap, Math.max(1, requestedLimit))
       : 10;
     const matched = filterRecords(payload.records, query);
     const selected = matched.slice(0, limit).map((record) => ({
       ...record,
-      note: record.note.slice(0, 5_000),
-      noteTruncated: record.note.length > 5_000,
+      note: isOwner ? record.note : record.note.slice(0, 5_000),
+      noteTruncated: !isOwner && record.note.length > 5_000,
     }));
 
     return json({
@@ -244,6 +301,7 @@ export async function GET(request: Request) {
       total: row.record_count,
       matched: matched.length,
       query,
+      access: isOwner ? "owner" : "read",
       records: selected,
     });
   } catch (error) {
@@ -269,12 +327,20 @@ export async function PUT(request: Request) {
     await ensureVaultSchema();
     const body = (await request.json()) as Record<string, unknown>;
     const readKey = text(body.readKey, 80);
+    const noteKey = text(body.noteKey, 80);
     if (!KEY_PATTERN.test(readKey) || readKey === ownerKey) {
       return json({ error: "AI 读档钥匙无效。" }, 400);
     }
+    if (
+      !KEY_PATTERN.test(noteKey) ||
+      noteKey === ownerKey ||
+      noteKey === readKey
+    ) {
+      return json({ error: "AI 手记钥匙无效。" }, 400);
+    }
 
     const rawRecords = Array.isArray(body.records) ? body.records : [];
-    const records = rawRecords
+    let records = rawRecords
       .map(sanitizeRecord)
       .filter((record): record is TavernRecord => Boolean(record))
       .sort(
@@ -287,6 +353,61 @@ export async function PUT(request: Request) {
       body.settings && typeof body.settings === "object"
         ? (body.settings as Record<string, unknown>)
         : {};
+    const [ownerKeyHash, readKeyHash, noteKeyHash] = await Promise.all([
+      hashKey(ownerKey),
+      hashKey(readKey),
+      hashKey(noteKey),
+    ]);
+    const d1 = getD1();
+    if (await keyBelongsToAnotherVault(d1, ownerKeyHash, ownerKeyHash)) {
+      return json({ error: "AI 读档钥匙不能用于更新档案。" }, 403);
+    }
+
+    if (await keyBelongsToAnotherVault(d1, readKeyHash, ownerKeyHash)) {
+      return json({ error: "这把 AI 读档钥匙已被其他档案使用。" }, 409);
+    }
+
+    if (await keyBelongsToAnotherVault(d1, noteKeyHash, ownerKeyHash)) {
+      return json({ error: "这把 AI 手记钥匙已被其他档案使用。" }, 409);
+    }
+
+    let mergedNoteCount = 0;
+    const existing = await d1
+      .prepare(
+        `SELECT owner_key_hash, payload, record_count, updated_at
+         FROM tavern_vaults
+         WHERE owner_key_hash = ?1
+         LIMIT 1`,
+      )
+      .bind(ownerKeyHash)
+      .first<VaultRow>();
+    if (existing) {
+      try {
+        const cloud = JSON.parse(existing.payload) as VaultPayload;
+        const cloudRecords = new Map(
+          cloud.records.map((record) => [record.id, record]),
+        );
+        records = records.map((record) => {
+          const cloudRecord = cloudRecords.get(record.id);
+          if (
+            cloudRecord &&
+            timestamp(cloudRecord.noteUpdatedAt) >
+              timestamp(record.noteUpdatedAt)
+          ) {
+            mergedNoteCount += 1;
+            return {
+              ...record,
+              note: cloudRecord.note,
+              noteUpdatedAt: cloudRecord.noteUpdatedAt,
+            };
+          }
+          return record;
+        });
+      } catch {
+        // A malformed old snapshot should not prevent the user from resyncing.
+      }
+    }
+
     const now = new Date().toISOString();
     const payload: VaultPayload = {
       schema: "crimson-tavern-vault",
@@ -303,40 +424,9 @@ export async function PUT(request: Request) {
       return json({ error: "档案太大，请减少手记内容后再同步。" }, 413);
     }
 
-    const [ownerKeyHash, readKeyHash] = await Promise.all([
-      hashKey(ownerKey),
-      hashKey(readKey),
-    ]);
-    const d1 = getD1();
-    const ownerCollision = await d1
-      .prepare(
-        `SELECT owner_key_hash
-         FROM tavern_vaults
-         WHERE read_key_hash = ?1 AND owner_key_hash <> ?1
-         LIMIT 1`,
-      )
-      .bind(ownerKeyHash)
-      .first();
-    if (ownerCollision) {
-      return json({ error: "AI 读档钥匙不能用于更新档案。" }, 403);
-    }
-
-    const readKeyCollision = await d1
-      .prepare(
-        `SELECT owner_key_hash
-         FROM tavern_vaults
-         WHERE (owner_key_hash = ?1 OR read_key_hash = ?1)
-           AND owner_key_hash <> ?2
-         LIMIT 1`,
-      )
-      .bind(readKeyHash, ownerKeyHash)
-      .first();
-    if (readKeyCollision) {
-      return json({ error: "这把 AI 读档钥匙已被其他档案使用。" }, 409);
-    }
-
-    await d1
-      .prepare(
+    await d1.batch([
+      d1
+        .prepare(
         `INSERT INTO tavern_vaults (
            owner_key_hash, read_key_hash, payload, record_count, created_at, updated_at
          ) VALUES (?1, ?2, ?3, ?4, ?5, ?5)
@@ -345,25 +435,154 @@ export async function PUT(request: Request) {
            payload = excluded.payload,
            record_count = excluded.record_count,
            updated_at = excluded.updated_at`,
-      )
-      .bind(
-        ownerKeyHash,
-        readKeyHash,
-        serialized,
-        records.length,
-        now,
-      )
-      .run();
+        )
+        .bind(
+          ownerKeyHash,
+          readKeyHash,
+          serialized,
+          records.length,
+          now,
+        ),
+      d1
+        .prepare(
+          `INSERT INTO tavern_note_keys (
+             note_key_hash, owner_key_hash, created_at, updated_at
+           ) VALUES (?1, ?2, ?3, ?3)
+           ON CONFLICT(owner_key_hash) DO UPDATE SET
+             note_key_hash = excluded.note_key_hash,
+             updated_at = excluded.updated_at`,
+        )
+        .bind(noteKeyHash, ownerKeyHash, now),
+    ]);
 
     return json({
       success: true,
       syncedAt: now,
       recordCount: records.length,
       truncated: rawRecords.length > MAX_RECORDS,
+      mergedNoteCount,
     });
   } catch (error) {
     if (error instanceof SyntaxError) {
       return json({ error: "没有识别到有效的酒馆档案。" }, 400);
+    }
+    return storageError(error);
+  }
+}
+
+export async function PATCH(request: Request) {
+  const noteKey = bearerKey(request);
+  if (!noteKey) {
+    return json({ error: "缺少有效的 AI 手记钥匙。" }, 401);
+  }
+
+  try {
+    await ensureVaultSchema();
+    const body = (await request.json()) as Record<string, unknown>;
+    const recordId = text(body.recordId, 120);
+    const rawAddition = String(body.content ?? "").trim();
+    if (!recordId) {
+      return json({ error: "缺少要续写的酒签编号。" }, 400);
+    }
+    if (!rawAddition) {
+      return json({ error: "续写内容不能为空。" }, 400);
+    }
+    if (rawAddition.length > MAX_NOTE_APPEND) {
+      return json(
+        { error: `单次最多追加 ${MAX_NOTE_APPEND} 字，请缩短后重试。` },
+        413,
+      );
+    }
+
+    const d1 = getD1();
+    const noteKeyHash = await hashKey(noteKey);
+    const keyRow = await d1
+      .prepare(
+        `SELECT owner_key_hash
+         FROM tavern_note_keys
+         WHERE note_key_hash = ?1
+         LIMIT 1`,
+      )
+      .bind(noteKeyHash)
+      .first<NoteKeyRow>();
+    if (!keyRow) {
+      return json({ error: "没有找到这把钥匙对应的手记权限。" }, 403);
+    }
+
+    const vault = await d1
+      .prepare(
+        `SELECT owner_key_hash, payload, record_count, updated_at
+         FROM tavern_vaults
+         WHERE owner_key_hash = ?1
+         LIMIT 1`,
+      )
+      .bind(keyRow.owner_key_hash)
+      .first<VaultRow>();
+    if (!vault) {
+      return json({ error: "对应的酒馆档案不存在。" }, 404);
+    }
+
+    const payload = JSON.parse(vault.payload) as VaultPayload;
+    const record = payload.records.find((item) => item.id === recordId);
+    if (!record) {
+      return json({ error: "没有找到要续写的这张酒签。" }, 404);
+    }
+
+    const previousNote = record.note.trimEnd();
+    if (previousNote && previousNote.endsWith(rawAddition)) {
+      return json({
+        success: true,
+        alreadyApplied: true,
+        recordId: record.id,
+        drinkName: record.drinkName,
+        note: record.note,
+        noteUpdatedAt: record.noteUpdatedAt,
+        appendedChars: 0,
+      });
+    }
+
+    const nextNote = previousNote
+      ? `${previousNote}\n\n${rawAddition}`
+      : rawAddition;
+    if (nextNote.length > MAX_NOTE_LENGTH) {
+      return json(
+        {
+          error: `这篇随杯手记最多保存 ${MAX_NOTE_LENGTH} 字，请缩短续写内容。`,
+        },
+        413,
+      );
+    }
+
+    const now = new Date().toISOString();
+    record.note = nextNote;
+    record.noteUpdatedAt = now;
+    payload.syncedAt = now;
+    const serialized = JSON.stringify(payload);
+    if (encoder.encode(serialized).byteLength > MAX_PAYLOAD_BYTES) {
+      return json({ error: "档案空间不足，无法保存这次续写。" }, 413);
+    }
+
+    await d1
+      .prepare(
+        `UPDATE tavern_vaults
+         SET payload = ?1, updated_at = ?2
+         WHERE owner_key_hash = ?3`,
+      )
+      .bind(serialized, now, keyRow.owner_key_hash)
+      .run();
+
+    return json({
+      success: true,
+      alreadyApplied: false,
+      recordId: record.id,
+      drinkName: record.drinkName,
+      note: record.note,
+      noteUpdatedAt: now,
+      appendedChars: rawAddition.length,
+    });
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return json({ error: "没有识别到有效的续写内容。" }, 400);
     }
     return storageError(error);
   }
