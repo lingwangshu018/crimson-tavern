@@ -990,6 +990,7 @@ export default function Home() {
               <h3>让 AI 翻阅档案并续写手记</h3>
               <p>
                 读档钥匙只能查看；手记钥匙只能在已有酒签末尾追加文字，不能改酒单、覆盖原文或删除记录。
+                粘贴到橘瓣插件后，请记得点击“保存配置”。
               </p>
               <div className="vault-actions">
                 <button
