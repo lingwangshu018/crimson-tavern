@@ -7,12 +7,5 @@
     "directory": "./dist-pages",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "crimson-tavern-db",
-      "database_id": "8284182f982239f555c7c530e9bd4f4b"
-    }
-  ]
+  }
 }
