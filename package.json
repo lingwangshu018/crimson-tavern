@@ -10,13 +10,13 @@
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vite",
     "build": "bash scripts/build-verified.sh",
     "build:pages": "vite build --config vite.pages.config.ts",
+    "build:cloudflare": "npm run build:pages && node scripts/build-cloudflare.mjs",
     "typecheck:pages": "tsc --noEmit -p tsconfig.pages.json",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "validate:artifact": "bash scripts/validate-artifact.sh",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
-    "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate",
-    "build:cloudflare": "npm run build:pages && node --input-type=module -e \"import fs from 'node:fs';\\nimport path from 'node:path';\\nconst oldUrl = 'https://crimson-tavern.boarder-72pound.chatgpt.site/api/vault';\\nfunction rewrite(dir) {\\n  for (const name of fs.readdirSync(dir)) {\\n    const file = path.join(dir, name);\\n    const stat = fs.statSync(file);\\n    if (stat.isDirectory()) rewrite(file);\\n    else {\\n      const source = fs.readFileSync(file, 'utf8');\\n      if (source.includes(oldUrl)) fs.writeFileSync(file, source.split(oldUrl).join('/api/vault'));\\n    }\\n  }\\n}\\nrewrite('dist-pages');\\nfs.writeFileSync('worker-entry.js', \\\"import { setD1 } from \\\\\\\"./db/index.ts\\\\\\\";\\\\nimport { GET, OPTIONS, PATCH, POST, PUT } from \\\\\\\"./app/api/vault/route.ts\\\\\\\";\\\\n\\\\nexport default {\\\\n  async fetch(request, env) {\\\\n    const url = new URL(request.url);\\\\n    if (url.pathname === \\\\\\\"/api/vault\\\\\\\" || url.pathname === \\\\\\\"/api/vault/\\\\\\\") {\\\\n      setD1(env.DB);\\\\n      switch (request.method.toUpperCase()) {\\\\n        case \\\\\\\"OPTIONS\\\\\\\": return OPTIONS();\\\\n        case \\\\\\\"GET\\\\\\\": return GET(request);\\\\n        case \\\\\\\"PUT\\\\\\\": return PUT(request);\\\\n        case \\\\\\\"POST\\\\\\\": return POST(request);\\\\n        case \\\\\\\"PATCH\\\\\\\": return PATCH(request);\\\\n        default:\\\\n          return Response.json(\\\\n            { error: \\\\\\\"不支持这种请求方式。\\\\\\\" },\\\\n            { status: 405, headers: { Allow: \\\\\\\"GET, POST, PUT, PATCH, OPTIONS\\\\\\\", \\\\\\\"Cache-Control\\\\\\\": \\\\\\\"no-store\\\\\\\" } },\\\\n          );\\\\n      }\\\\n    }\\\\n    return env.ASSETS.fetch(request);\\\\n  },\\\\n};\\\\n\\\");\\n\""
+    "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
