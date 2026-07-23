@@ -42,6 +42,10 @@ type TavernRecord = {
 
 const HISTORY_KEY = "crimson-tavern.history.v1";
 const SETTINGS_KEY = "crimson-tavern.settings.v1";
+const VAULT_OWNER_KEY = "crimson-tavern.vault-owner-key.v1";
+const VAULT_READ_KEY = "crimson-tavern.vault-read-key.v1";
+const VAULT_SYNCED_AT_KEY = "crimson-tavern.vault-synced-at.v1";
+const VAULT_KEY_PATTERN = /^ctv1_[A-Za-z0-9_-]{43}$/;
 
 const prefixes = [
   "绯月",
@@ -105,6 +109,22 @@ function createId() {
     return crypto.randomUUID();
   }
   return `drink-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function createVaultKey() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  const binary = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
+  return `ctv1_${window
+    .btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "")}`;
+}
+
+function maskedVaultKey(value: string) {
+  if (!value) return "同步后生成";
+  return `${value.slice(0, 11)}••••••••${value.slice(-6)}`;
 }
 
 function makeOrder(
@@ -258,6 +278,10 @@ export default function Home() {
     "all",
   );
   const [toast, setToast] = useState("");
+  const [vaultOwnerKey, setVaultOwnerKey] = useState("");
+  const [vaultReadKey, setVaultReadKey] = useState("");
+  const [vaultSyncedAt, setVaultSyncedAt] = useState<string | null>(null);
+  const [syncingVault, setSyncingVault] = useState(false);
   const [status, setStatus] = useState(
     () =>
       `六册酒单已经备好，共 ${(menuData as MenuDimension[]).reduce(
@@ -286,6 +310,25 @@ export default function Home() {
             .slice(0, 500);
           setRecords(normalized);
           if (normalized[0]) setCurrent(normalized[0]);
+        }
+
+        const savedOwnerKey =
+          window.localStorage.getItem(VAULT_OWNER_KEY) || "";
+        const savedReadKey =
+          window.localStorage.getItem(VAULT_READ_KEY) || "";
+        const savedSyncedAt =
+          window.localStorage.getItem(VAULT_SYNCED_AT_KEY) || "";
+        if (VAULT_KEY_PATTERN.test(savedOwnerKey)) {
+          setVaultOwnerKey(savedOwnerKey);
+        }
+        if (VAULT_KEY_PATTERN.test(savedReadKey)) {
+          setVaultReadKey(savedReadKey);
+        }
+        if (
+          savedSyncedAt &&
+          !Number.isNaN(new Date(savedSyncedAt).getTime())
+        ) {
+          setVaultSyncedAt(savedSyncedAt);
         }
       } catch {
         setStatus("酒单已经备好，本地档案会从下一杯开始记录。");
@@ -456,6 +499,82 @@ export default function Home() {
       showToast("没有识别到有效的绯夜酒馆档案文件。");
     } finally {
       if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }
+
+  async function syncVault() {
+    if (syncingVault) return;
+    if (!records.length) {
+      showToast("酒馆档案还是空的，先点一杯酒再同步。");
+      return;
+    }
+
+    let ownerKey = vaultOwnerKey;
+    let readKey = vaultReadKey;
+    if (!VAULT_KEY_PATTERN.test(ownerKey)) ownerKey = createVaultKey();
+    if (!VAULT_KEY_PATTERN.test(readKey) || readKey === ownerKey) {
+      readKey = createVaultKey();
+    }
+
+    setVaultOwnerKey(ownerKey);
+    setVaultReadKey(readKey);
+    window.localStorage.setItem(VAULT_OWNER_KEY, ownerKey);
+    window.localStorage.setItem(VAULT_READ_KEY, readKey);
+    setSyncingVault(true);
+
+    try {
+      const response = await fetch("/api/vault", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${ownerKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          readKey,
+          settings: {
+            bartender: cleanName(bartender, "夜阑"),
+            guest: cleanName(guest, "客人"),
+          },
+          records,
+        }),
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        syncedAt?: string;
+        recordCount?: number;
+        truncated?: boolean;
+      };
+      if (!response.ok || !result.syncedAt) {
+        throw new Error(result.error || "同步失败");
+      }
+
+      setVaultSyncedAt(result.syncedAt);
+      window.localStorage.setItem(VAULT_SYNCED_AT_KEY, result.syncedAt);
+      showToast(
+        result.truncated
+          ? `已同步最近 ${result.recordCount || 0} 杯酒；更早档案仍保存在本机。`
+          : `已把 ${result.recordCount || 0} 杯酒同步给 AI 档案库。`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "同步暂时没有成功";
+      showToast(`${message.slice(0, 80)}，请稍后再试。`);
+    } finally {
+      setSyncingVault(false);
+    }
+  }
+
+  async function copyVaultReadKey() {
+    if (!vaultReadKey) {
+      showToast("请先同步一次档案，酒馆才会生成读档钥匙。");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(vaultReadKey);
+      showToast("AI 读档钥匙已复制，可粘贴到橘瓣插件设置。");
+    } catch {
+      window.prompt("复制这把 AI 读档钥匙：", vaultReadKey);
     }
   }
 
@@ -731,8 +850,46 @@ export default function Home() {
               />
             </div>
 
+            <div className="ai-vault">
+              <div className="ai-vault-heading">
+                <span>AI READ-ONLY CELLAR</span>
+                <strong>只读</strong>
+              </div>
+              <h3>让 AI 翻阅酒馆档案</h3>
+              <p>
+                只有主动同步时，当前酒签与手记才会生成一份私有快照。AI
+                可以查看和搜索，但不能修改或删除。
+              </p>
+              <button
+                className="vault-sync-button"
+                type="button"
+                onClick={() => void syncVault()}
+                disabled={!records.length || syncingVault}
+              >
+                <span>{syncingVault ? "同步中…" : "同步当前档案"}</span>
+                <small>
+                  {vaultSyncedAt
+                    ? `上次同步 ${formatFullDate(vaultSyncedAt)}`
+                    : "首次同步后生成读档钥匙"}
+                </small>
+              </button>
+              <div className="vault-key-row">
+                <div>
+                  <span>AI 读档钥匙</span>
+                  <code>{maskedVaultKey(vaultReadKey)}</code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void copyVaultReadKey()}
+                  disabled={!vaultReadKey}
+                >
+                  复制
+                </button>
+              </div>
+            </div>
+
             <p className="local-note">
-              档案仅保存在当前浏览器。更换设备或清理浏览器前，请先导出备份。
+              本机档案仍是原始版本；云端只保存你主动同步的快照。更换设备或清理浏览器前，请先导出备份。
             </p>
           </aside>
 
@@ -924,7 +1081,16 @@ export default function Home() {
 
       <footer className="site-footer">
         <span>绯夜酒馆 · 私人酒窖</span>
-        <span>仅限明确成年的虚构人物 · 数据保存在当前浏览器</span>
+        <span>
+          仅限明确成年的虚构人物 ·{" "}
+          <a
+            href="https://github.com/29-Cu/routa-della-fortuna"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Based on Ruota della Fortuna by Copper (29-Cu)
+          </a>
+        </span>
       </footer>
     </main>
   );
