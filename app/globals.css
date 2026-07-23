@@ -1064,6 +1064,135 @@ a:focus-visible {
   line-height: 1.5;
 }
 
+.ai-vault {
+  margin-top: 12px;
+  padding: 15px 14px 14px;
+  border: 1px solid rgba(151, 42, 64, 0.35);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(151, 42, 64, 0.13), transparent 55%),
+    rgba(19, 9, 11, 0.82);
+  box-shadow: inset 0 0 28px rgba(0, 0, 0, 0.2);
+}
+
+.ai-vault-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--wine-glow);
+  font-family: Georgia, serif;
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+
+.ai-vault-heading strong {
+  padding: 3px 6px;
+  border: 1px solid rgba(203, 168, 107, 0.25);
+  border-radius: 999px;
+  color: var(--gold);
+  font-family: inherit;
+  font-size: 7px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.ai-vault h3 {
+  margin: 11px 0 7px;
+  color: var(--gold-bright);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.ai-vault > p {
+  margin: 0;
+  color: var(--faint);
+  font-size: 8px;
+  line-height: 1.75;
+}
+
+.vault-sync-button {
+  display: block;
+  width: 100%;
+  margin-top: 13px;
+  padding: 10px 11px;
+  border: 1px solid rgba(203, 168, 107, 0.32);
+  border-radius: 7px;
+  color: var(--gold-bright);
+  background: linear-gradient(135deg, rgba(93, 24, 38, 0.65), rgba(35, 13, 18, 0.82));
+  cursor: pointer;
+  text-align: left;
+}
+
+.vault-sync-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.vault-sync-button span,
+.vault-sync-button small {
+  display: block;
+}
+
+.vault-sync-button span {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.vault-sync-button small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.vault-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 9px;
+  align-items: end;
+}
+
+.vault-key-row > div {
+  min-width: 0;
+}
+
+.vault-key-row span,
+.vault-key-row code {
+  display: block;
+}
+
+.vault-key-row span {
+  margin-bottom: 4px;
+  color: var(--faint);
+  font-size: 7px;
+}
+
+.vault-key-row code {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-key-row button {
+  min-width: 44px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--gold);
+  background: rgba(10, 5, 7, 0.66);
+  cursor: pointer;
+  font-size: 8px;
+}
+
+.vault-key-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 .local-note {
   margin: 14px 4px 0;
   color: var(--faint);
@@ -1481,6 +1610,16 @@ a:focus-visible {
   color: var(--faint);
   font-size: 9px;
   letter-spacing: 0.09em;
+}
+
+.site-footer a {
+  color: var(--muted);
+  text-decoration-color: rgba(203, 168, 107, 0.32);
+  text-underline-offset: 3px;
+}
+
+.site-footer a:hover {
+  color: var(--gold);
 }
 
 @keyframes shake {
