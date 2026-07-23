@@ -1,0 +1,131 @@
+.tag-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.tag-filter-bar button,
+.custom-tag-ribbon button,
+.custom-tag-ribbon span {
+  border: 1px solid rgba(203, 168, 107, 0.28);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--gold-bright);
+  background: rgba(203, 168, 107, 0.07);
+  font-size: 12px;
+}
+
+.tag-filter-bar button,
+.custom-tag-ribbon button {
+  cursor: pointer;
+}
+
+.tag-filter-bar button.active {
+  border-color: var(--wine-glow);
+  background: rgba(151, 42, 64, 0.28);
+  color: #fff0df;
+}
+
+.record-card {
+  position: relative;
+}
+
+.record-card.pinned {
+  border-color: rgba(241, 217, 166, 0.5);
+  box-shadow: 0 0 0 1px rgba(241, 217, 166, 0.08), 0 20px 48px rgba(0, 0, 0, 0.24);
+}
+
+.record-top-actions {
+  position: absolute;
+  z-index: 4;
+  top: 16px;
+  right: 52px;
+  display: flex;
+  gap: 6px;
+}
+
+.record-top-actions button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(12, 5, 7, 0.74);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.record-top-actions button.active {
+  border-color: var(--gold);
+  color: var(--gold-bright);
+  background: rgba(203, 168, 107, 0.12);
+}
+
+.custom-tag-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 22px 12px;
+}
+
+.custom-tag-ribbon button {
+  border: 0;
+}
+
+.tag-editor {
+  display: grid;
+  gap: 7px;
+  margin: 0 0 16px;
+}
+
+.tag-editor > span {
+  color: var(--gold-bright);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+
+.tag-editor input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: rgba(5, 2, 3, 0.45);
+}
+
+.tag-editor small {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.tag-save-button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 13px;
+  color: var(--gold-bright);
+  background: rgba(203, 168, 107, 0.08);
+}
+
+@media (max-width: 760px) {
+  .record-top-actions {
+    top: 10px;
+    right: 46px;
+  }
+
+  .record-top-actions button {
+    width: 30px;
+    height: 30px;
+  }
+
+  .tag-filter-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .tag-filter-bar button {
+    white-space: nowrap;
+  }
+}
