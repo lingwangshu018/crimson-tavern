@@ -54,8 +54,9 @@ let schemaReady: Promise<void> | null = null;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Authorization, Content-Type",
-  "Access-Control-Allow-Methods": "GET, PUT, PATCH, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Authorization, Content-Type, X-Tavern-Key",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, OPTIONS",
   "Access-Control-Max-Age": "86400",
   "Cache-Control": "no-store",
 };
@@ -121,7 +122,10 @@ function sanitizeRecord(value: unknown): TavernRecord | null {
   };
 }
 
-function bearerKey(request: Request) {
+function requestKey(request: Request) {
+  const directKey = request.headers.get("X-Tavern-Key")?.trim() || "";
+  if (KEY_PATTERN.test(directKey)) return directKey;
+
   const header = request.headers.get("Authorization") || "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   const key = match?.[1]?.trim() || "";
@@ -253,7 +257,7 @@ export function OPTIONS() {
 }
 
 export async function GET(request: Request) {
-  const key = bearerKey(request);
+  const key = requestKey(request);
   if (!key) {
     return json({ error: "缺少有效的 AI 读档钥匙。" }, 401);
   }
@@ -310,7 +314,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const ownerKey = bearerKey(request);
+  const ownerKey = requestKey(request);
   if (!ownerKey) {
     return json({ error: "缺少有效的酒馆主人钥匙。" }, 401);
   }
@@ -470,8 +474,8 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function PATCH(request: Request) {
-  const noteKey = bearerKey(request);
+async function appendNote(request: Request) {
+  const noteKey = requestKey(request);
   if (!noteKey) {
     return json({ error: "缺少有效的 AI 手记钥匙。" }, 401);
   }
@@ -586,4 +590,12 @@ export async function PATCH(request: Request) {
     }
     return storageError(error);
   }
+}
+
+export async function POST(request: Request) {
+  return appendNote(request);
+}
+
+export async function PATCH(request: Request) {
+  return appendNote(request);
 }
