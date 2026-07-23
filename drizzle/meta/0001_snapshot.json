@@ -1,0 +1,125 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "dfb550c0-4f1b-42e7-92e0-85ef885ff559",
+  "prevId": "4d856dab-19e2-4d42-bae0-f8c1670fbd97",
+  "tables": {
+    "tavern_note_keys": {
+      "name": "tavern_note_keys",
+      "columns": {
+        "note_key_hash": {
+          "name": "note_key_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "owner_key_hash": {
+          "name": "owner_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "tavern_note_keys_owner_key_hash_idx": {
+          "name": "tavern_note_keys_owner_key_hash_idx",
+          "columns": [
+            "owner_key_hash"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tavern_vaults": {
+      "name": "tavern_vaults",
+      "columns": {
+        "owner_key_hash": {
+          "name": "owner_key_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "read_key_hash": {
+          "name": "read_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payload": {
+          "name": "payload",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_count": {
+          "name": "record_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "tavern_vaults_read_key_hash_idx": {
+          "name": "tavern_vaults_read_key_hash_idx",
+          "columns": [
+            "read_key_hash"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
