@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "crimson-tavern",
   "main": "worker-entry.ts",
-  "compatibility_date": "2026-07-23",
+  "compatibility_date": "2026-07-01",
   "assets": {
     "directory": "./dist-pages",
     "binding": "ASSETS",
