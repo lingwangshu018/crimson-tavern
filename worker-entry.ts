@@ -1,4 +1,4 @@
-import { setD1 } from "./app/db";
+import { setD1 } from "./db";
 import {
   GET,
   OPTIONS,
