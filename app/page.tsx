@@ -47,6 +47,8 @@ const VAULT_READ_KEY = "crimson-tavern.vault-read-key.v1";
 const VAULT_NOTE_KEY = "crimson-tavern.vault-note-key.v1";
 const VAULT_SYNCED_AT_KEY = "crimson-tavern.vault-synced-at.v1";
 const VAULT_KEY_PATTERN = /^ctv1_[A-Za-z0-9_-]{43}$/;
+const VAULT_API_URL =
+  "https://crimson-tavern.boarder-72pound.chatgpt.site/api/vault";
 
 const prefixes = [
   "绯月",
@@ -541,7 +543,7 @@ export default function Home() {
     setSyncingVault(true);
 
     try {
-      const response = await fetch("/api/vault", {
+      const response = await fetch(VAULT_API_URL, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${ownerKey}`,
@@ -602,7 +604,7 @@ export default function Home() {
 
     if (!options?.silent) setPullingVaultNotes(true);
     try {
-      const response = await fetch("/api/vault?limit=250", {
+      const response = await fetch(`${VAULT_API_URL}?limit=250`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${ownerKey}`,
