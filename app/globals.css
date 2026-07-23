@@ -1111,10 +1111,17 @@ a:focus-visible {
   line-height: 1.75;
 }
 
-.vault-sync-button {
+.vault-actions {
+  display: grid;
+  grid-template-columns: 1fr 0.86fr;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.vault-sync-button,
+.vault-pull-button {
   display: block;
   width: 100%;
-  margin-top: 13px;
   padding: 10px 11px;
   border: 1px solid rgba(203, 168, 107, 0.32);
   border-radius: 7px;
@@ -1124,25 +1131,37 @@ a:focus-visible {
   text-align: left;
 }
 
-.vault-sync-button:disabled {
+.vault-pull-button {
+  border-color: rgba(151, 42, 64, 0.38);
+  color: var(--cream);
+  background: rgba(55, 17, 25, 0.52);
+}
+
+.vault-sync-button:disabled,
+.vault-pull-button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
 }
 
 .vault-sync-button span,
-.vault-sync-button small {
+.vault-sync-button small,
+.vault-pull-button span,
+.vault-pull-button small {
   display: block;
 }
 
-.vault-sync-button span {
+.vault-sync-button span,
+.vault-pull-button span {
   font-size: 9px;
   letter-spacing: 0.08em;
 }
 
-.vault-sync-button small {
+.vault-sync-button small,
+.vault-pull-button small {
   margin-top: 4px;
   color: var(--muted);
   font-size: 7px;
+  line-height: 1.45;
 }
 
 .vault-key-row {
@@ -1704,6 +1723,10 @@ a:focus-visible {
 }
 
 @media (max-width: 580px) {
+  .vault-actions {
+    grid-template-columns: 1fr;
+  }
+
   .topbar {
     width: calc(100% - 28px);
     padding-top: max(18px, env(safe-area-inset-top));
