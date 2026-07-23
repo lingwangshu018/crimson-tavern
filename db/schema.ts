@@ -1,4 +1,16 @@
-// Intentionally empty by default.
-// Add Drizzle tables here when the site actually needs a database.
-// See examples/d1/db/schema.ts for an opt-in example.
-export {};
+import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+
+export const tavernVaults = sqliteTable(
+  "tavern_vaults",
+  {
+    ownerKeyHash: text("owner_key_hash").primaryKey(),
+    readKeyHash: text("read_key_hash").notNull(),
+    payload: text("payload").notNull(),
+    recordCount: integer("record_count").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("tavern_vaults_read_key_hash_idx").on(table.readKeyHash),
+  ],
+);
