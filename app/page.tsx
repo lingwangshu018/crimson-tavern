@@ -44,6 +44,7 @@ const HISTORY_KEY = "crimson-tavern.history.v1";
 const SETTINGS_KEY = "crimson-tavern.settings.v1";
 const VAULT_OWNER_KEY = "crimson-tavern.vault-owner-key.v1";
 const VAULT_READ_KEY = "crimson-tavern.vault-read-key.v1";
+const VAULT_NOTE_KEY = "crimson-tavern.vault-note-key.v1";
 const VAULT_SYNCED_AT_KEY = "crimson-tavern.vault-synced-at.v1";
 const VAULT_KEY_PATTERN = /^ctv1_[A-Za-z0-9_-]{43}$/;
 
@@ -280,8 +281,10 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [vaultOwnerKey, setVaultOwnerKey] = useState("");
   const [vaultReadKey, setVaultReadKey] = useState("");
+  const [vaultNoteKey, setVaultNoteKey] = useState("");
   const [vaultSyncedAt, setVaultSyncedAt] = useState<string | null>(null);
   const [syncingVault, setSyncingVault] = useState(false);
+  const [pullingVaultNotes, setPullingVaultNotes] = useState(false);
   const [status, setStatus] = useState(
     () =>
       `六册酒单已经备好，共 ${(menuData as MenuDimension[]).reduce(
@@ -316,6 +319,8 @@ export default function Home() {
           window.localStorage.getItem(VAULT_OWNER_KEY) || "";
         const savedReadKey =
           window.localStorage.getItem(VAULT_READ_KEY) || "";
+        const savedNoteKey =
+          window.localStorage.getItem(VAULT_NOTE_KEY) || "";
         const savedSyncedAt =
           window.localStorage.getItem(VAULT_SYNCED_AT_KEY) || "";
         if (VAULT_KEY_PATTERN.test(savedOwnerKey)) {
@@ -323,6 +328,9 @@ export default function Home() {
         }
         if (VAULT_KEY_PATTERN.test(savedReadKey)) {
           setVaultReadKey(savedReadKey);
+        }
+        if (VAULT_KEY_PATTERN.test(savedNoteKey)) {
+          setVaultNoteKey(savedNoteKey);
         }
         if (
           savedSyncedAt &&
@@ -511,15 +519,25 @@ export default function Home() {
 
     let ownerKey = vaultOwnerKey;
     let readKey = vaultReadKey;
+    let noteKey = vaultNoteKey;
     if (!VAULT_KEY_PATTERN.test(ownerKey)) ownerKey = createVaultKey();
     if (!VAULT_KEY_PATTERN.test(readKey) || readKey === ownerKey) {
       readKey = createVaultKey();
     }
+    if (
+      !VAULT_KEY_PATTERN.test(noteKey) ||
+      noteKey === ownerKey ||
+      noteKey === readKey
+    ) {
+      noteKey = createVaultKey();
+    }
 
     setVaultOwnerKey(ownerKey);
     setVaultReadKey(readKey);
+    setVaultNoteKey(noteKey);
     window.localStorage.setItem(VAULT_OWNER_KEY, ownerKey);
     window.localStorage.setItem(VAULT_READ_KEY, readKey);
+    window.localStorage.setItem(VAULT_NOTE_KEY, noteKey);
     setSyncingVault(true);
 
     try {
@@ -531,6 +549,7 @@ export default function Home() {
         },
         body: JSON.stringify({
           readKey,
+          noteKey,
           settings: {
             bartender: cleanName(bartender, "夜阑"),
             guest: cleanName(guest, "客人"),
@@ -543,6 +562,7 @@ export default function Home() {
         syncedAt?: string;
         recordCount?: number;
         truncated?: boolean;
+        mergedNoteCount?: number;
       };
       if (!response.ok || !result.syncedAt) {
         throw new Error(result.error || "同步失败");
@@ -550,6 +570,9 @@ export default function Home() {
 
       setVaultSyncedAt(result.syncedAt);
       window.localStorage.setItem(VAULT_SYNCED_AT_KEY, result.syncedAt);
+      if (result.mergedNoteCount) {
+        await pullVaultNotes({ ownerKey, silent: true });
+      }
       showToast(
         result.truncated
           ? `已同步最近 ${result.recordCount || 0} 杯酒；更早档案仍保存在本机。`
@@ -564,6 +587,101 @@ export default function Home() {
     }
   }
 
+  async function pullVaultNotes(options?: {
+    ownerKey?: string;
+    silent?: boolean;
+  }) {
+    if (pullingVaultNotes && !options?.silent) return;
+    const ownerKey = options?.ownerKey || vaultOwnerKey;
+    if (!VAULT_KEY_PATTERN.test(ownerKey)) {
+      if (!options?.silent) {
+        showToast("请先同步一次档案，酒馆才能收取 AI 手记。");
+      }
+      return;
+    }
+
+    if (!options?.silent) setPullingVaultNotes(true);
+    try {
+      const response = await fetch("/api/vault?limit=250", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${ownerKey}`,
+          Accept: "application/json",
+        },
+      });
+      const result = (await response.json()) as {
+        error?: string;
+        access?: string;
+        records?: unknown[];
+      };
+      if (!response.ok || result.access !== "owner") {
+        throw new Error(result.error || "收取手记失败");
+      }
+
+      const cloudRecords = (result.records || [])
+        .map(normalizeImportedRecord)
+        .filter((record): record is TavernRecord => Boolean(record));
+      const cloudById = new Map(
+        cloudRecords.map((record) => [record.id, record]),
+      );
+      const localById = new Map(records.map((record) => [record.id, record]));
+      const replacements = new Map<string, TavernRecord>();
+      const nextRecords = records.map((record) => {
+        const cloudRecord = cloudById.get(record.id);
+        if (
+          cloudRecord &&
+          cloudRecord.note !== record.note &&
+          new Date(cloudRecord.noteUpdatedAt || 0).getTime() >
+            new Date(record.noteUpdatedAt || 0).getTime()
+        ) {
+          const merged = {
+            ...record,
+            note: cloudRecord.note,
+            noteUpdatedAt: cloudRecord.noteUpdatedAt,
+          };
+          replacements.set(record.id, merged);
+          return merged;
+        }
+        return record;
+      });
+
+      if (replacements.size) {
+        persistRecords(nextRecords);
+        setCurrent((record) =>
+          record && replacements.has(record.id)
+            ? replacements.get(record.id) || record
+            : record,
+        );
+        setDrafts((previous) => {
+          const next = { ...previous };
+          replacements.forEach((record, id) => {
+            const local = localById.get(id);
+            if (next[id] === undefined || next[id] === local?.note) {
+              next[id] = record.note;
+            }
+          });
+          return next;
+        });
+      }
+
+      if (!options?.silent) {
+        showToast(
+          replacements.size
+            ? `已收取 ${replacements.size} 篇 AI 续写，并填入对应随杯手记。`
+            : "没有发现比本机更新的 AI 手记。",
+        );
+      }
+    } catch (error) {
+      if (!options?.silent) {
+        const message =
+          error instanceof Error ? error.message : "收取手记暂时没有成功";
+        showToast(`${message.slice(0, 80)}，请稍后再试。`);
+      }
+    } finally {
+      if (!options?.silent) setPullingVaultNotes(false);
+    }
+  }
+
   async function copyVaultReadKey() {
     if (!vaultReadKey) {
       showToast("请先同步一次档案，酒馆才会生成读档钥匙。");
@@ -575,6 +693,20 @@ export default function Home() {
       showToast("AI 读档钥匙已复制，可粘贴到橘瓣插件设置。");
     } catch {
       window.prompt("复制这把 AI 读档钥匙：", vaultReadKey);
+    }
+  }
+
+  async function copyVaultNoteKey() {
+    if (!vaultNoteKey) {
+      showToast("请重新同步一次档案，酒馆才会生成手记钥匙。");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(vaultNoteKey);
+      showToast("AI 手记钥匙已复制，可粘贴到橘瓣插件设置。");
+    } catch {
+      window.prompt("复制这把 AI 手记钥匙：", vaultNoteKey);
     }
   }
 
@@ -852,27 +984,39 @@ export default function Home() {
 
             <div className="ai-vault">
               <div className="ai-vault-heading">
-                <span>AI READ-ONLY CELLAR</span>
-                <strong>只读</strong>
+                <span>AI READ &amp; NOTE CELLAR</span>
+                <strong>限权写入</strong>
               </div>
-              <h3>让 AI 翻阅酒馆档案</h3>
+              <h3>让 AI 翻阅档案并续写手记</h3>
               <p>
-                只有主动同步时，当前酒签与手记才会生成一份私有快照。AI
-                可以查看和搜索，但不能修改或删除。
+                读档钥匙只能查看；手记钥匙只能在已有酒签末尾追加文字，不能改酒单、覆盖原文或删除记录。
               </p>
-              <button
-                className="vault-sync-button"
-                type="button"
-                onClick={() => void syncVault()}
-                disabled={!records.length || syncingVault}
-              >
-                <span>{syncingVault ? "同步中…" : "同步当前档案"}</span>
-                <small>
-                  {vaultSyncedAt
-                    ? `上次同步 ${formatFullDate(vaultSyncedAt)}`
-                    : "首次同步后生成读档钥匙"}
-                </small>
-              </button>
+              <div className="vault-actions">
+                <button
+                  className="vault-sync-button"
+                  type="button"
+                  onClick={() => void syncVault()}
+                  disabled={!records.length || syncingVault}
+                >
+                  <span>{syncingVault ? "同步中…" : "同步当前档案"}</span>
+                  <small>
+                    {vaultSyncedAt
+                      ? `上次同步 ${formatFullDate(vaultSyncedAt)}`
+                      : "首次同步后生成两把 AI 钥匙"}
+                  </small>
+                </button>
+                <button
+                  className="vault-pull-button"
+                  type="button"
+                  onClick={() => void pullVaultNotes()}
+                  disabled={!vaultSyncedAt || pullingVaultNotes}
+                >
+                  <span>
+                    {pullingVaultNotes ? "收取中…" : "收取 AI 手记"}
+                  </span>
+                  <small>把续写填回本机对应酒签</small>
+                </button>
+              </div>
               <div className="vault-key-row">
                 <div>
                   <span>AI 读档钥匙</span>
@@ -886,10 +1030,23 @@ export default function Home() {
                   复制
                 </button>
               </div>
+              <div className="vault-key-row">
+                <div>
+                  <span>AI 手记钥匙</span>
+                  <code>{maskedVaultKey(vaultNoteKey)}</code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void copyVaultNoteKey()}
+                  disabled={!vaultNoteKey}
+                >
+                  复制
+                </button>
+              </div>
             </div>
 
             <p className="local-note">
-              本机档案仍是原始版本；云端只保存你主动同步的快照。更换设备或清理浏览器前，请先导出备份。
+              AI 保存续写后，点击“收取 AI 手记”即可填回网站。本机档案仍是原始版本；更换设备或清理浏览器前，请先导出备份。
             </p>
           </aside>
 
