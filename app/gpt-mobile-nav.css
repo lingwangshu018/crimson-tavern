@@ -1,0 +1,197 @@
+.world-trigger {
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--cream);
+  background: rgba(18, 10, 13, 0.86);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  font-size: 0;
+}
+
+.world-trigger::before,
+.world-trigger::after,
+.world-trigger span {
+  position: absolute;
+  left: 11px;
+  width: 20px;
+  height: 1.5px;
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.world-trigger::before { top: 13px; }
+.world-trigger span { top: 20px; }
+.world-trigger::after { top: 27px; }
+
+.world-trigger:hover {
+  background: rgba(42, 24, 29, 0.96);
+}
+
+.world-backdrop {
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: none;
+}
+
+.world-drawer {
+  width: min(320px, calc(100vw - 52px));
+  padding: max(14px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom));
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: #140b0e;
+  box-shadow: 18px 0 48px rgba(0, 0, 0, 0.42);
+  transition: transform 0.24s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.world-drawer-head {
+  min-height: 48px;
+  padding: 3px 4px 11px;
+  align-items: center;
+  border-bottom: 0;
+}
+
+.world-drawer-head p {
+  display: none;
+}
+
+.world-drawer-head h2 {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.world-drawer-head button {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 22px;
+}
+
+.world-drawer-head button:hover {
+  color: var(--cream);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.world-map-entry {
+  grid-template-columns: 30px minmax(0, 1fr) 18px;
+  gap: 10px;
+  min-height: 46px;
+  margin: 2px 0 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.world-map-entry:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.world-map-entry > span {
+  width: 28px;
+  height: 28px;
+  border-color: rgba(203, 168, 107, 0.25);
+  font-size: 13px;
+}
+
+.world-map-entry strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.world-map-entry small {
+  display: none;
+}
+
+.world-map-entry em {
+  font-size: 16px;
+}
+
+.world-drawer-intro {
+  margin: 8px 10px 9px;
+  color: var(--faint);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.world-space-list {
+  gap: 2px;
+}
+
+.world-space-list > button {
+  grid-template-columns: 32px minmax(0, 1fr) 18px;
+  gap: 9px;
+  min-height: 50px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  transform: none;
+}
+
+.world-space-list > button:hover,
+.world-space-list > button.is-active {
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.065);
+  transform: none;
+}
+
+.world-space-index {
+  display: none;
+}
+
+.world-space-icon {
+  width: 30px;
+  height: 30px;
+  border-color: rgba(203, 168, 107, 0.22);
+  font-size: 13px;
+}
+
+.world-space-copy strong {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.world-space-copy small {
+  display: none;
+}
+
+.world-space-copy em {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--faint);
+  font-size: 9px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-space-arrow {
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.world-drawer footer {
+  margin: auto 8px 0;
+  padding: 14px 2px 3px;
+  border-top-color: rgba(255, 255, 255, 0.06);
+  font-size: 7px;
+}
+
+@media (max-width: 580px) {
+  .world-trigger {
+    top: max(9px, env(safe-area-inset-top));
+    left: 9px;
+  }
+
+  .world-drawer {
+    width: min(300px, calc(100vw - 44px));
+  }
+}
