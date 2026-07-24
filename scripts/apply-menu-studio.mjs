@@ -25,7 +25,7 @@ replace('kind === "house"\n        ? "酒保正在按完整酒谱调制招牌…
 replace('  function finishMixingRitual() {', '  function order(kind: "house" | "random") {\n    beginOrder(kind);\n  }\n\n  function customOrder(selection: Record<string, string>) {\n    beginOrder("custom", selection);\n  }\n\n  function finishMixingRitual() {');
 replace('<div className="order-actions">', '<MenuStudio menu={menu} onCustomOrder={customOrder} onExcludedChange={setExcludedTags} />\n\n          <div className="order-actions">');
 replace('{current.kind === "house" ? "HOUSE SPECIAL" : "BARTENDER’S CHOICE"}', '{current.kind === "house" ? "HOUSE SPECIAL" : current.kind === "custom" ? "PRIVATE RESERVE" : "BARTENDER’S CHOICE"}');
-replace('{current.kind === "house" ? "招牌" : "随机"}', '{current.kind === "house" ? "招牌" : current.kind === "custom" ? "私人特调" : "随机"}');
+replace('{record.kind === "house"\n                              ? "HOUSE SPECIAL"\n                              : "BARTENDER’S CHOICE"}', '{record.kind === "house"\n                              ? "HOUSE SPECIAL"\n                              : record.kind === "custom"\n                                ? "PRIVATE RESERVE"\n                                : "BARTENDER’S CHOICE"}');
 
 fs.writeFileSync(path, source);
 console.log("Applied Crimson Tavern private menu studio patch.");
