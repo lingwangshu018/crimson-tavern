@@ -4,29 +4,12 @@ import { useEffect, useState } from "react";
 import { JournalRoom } from "./JournalRoom";
 import { TimeWheelRoom } from "./TimeWheelRoom";
 import { StudyRoom } from "./StudyRoom";
+import { getRoom, roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
 import "./world-nav.css";
-
-type SpaceId = "tavern" | "cafe" | "journal" | "wheel" | "study";
-
-type Space = {
-  id: SpaceId;
-  icon: string;
-  name: string;
-  english: string;
-  description: string;
-};
-
-const spaces: Space[] = [
-  { id: "tavern", icon: "杯", name: "绯夜酒馆", english: "THE CRIMSON TAVERN", description: "今夜点单、调酒档案与随杯手记" },
-  { id: "cafe", icon: "啡", name: "绯昼咖啡馆", english: "THE CRIMSON CAFE", description: "留给白昼、咖啡与轻声交谈的房间" },
-  { id: "journal", icon: "记", name: "日记本", english: "THE PRIVATE JOURNAL", description: "把散落的片刻收进只属于你的书页" },
-  { id: "wheel", icon: "轮", name: "时光之轮", english: "THE WHEEL OF TIME", description: "沿时间回望故事、选择与留下的痕迹" },
-  { id: "study", icon: "习", name: "自习室", english: "THE STUDY ROOMS", description: "在静谧与柔软之间，选择今晚的书桌" },
-];
 
 export function WorldNav() {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<SpaceId>("tavern");
+  const [active, setActive] = useState<RoomId>("tavern");
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -63,7 +46,7 @@ export function WorldNav() {
     return () => { observer.disconnect(); window.removeEventListener("resize", liftOriginalCloudControl); };
   }, []);
 
-  function selectSpace(space: Space) {
+  function selectSpace(space: RoomDefinition) {
     setActive(space.id);
     setOpen(false);
     if (space.id === "tavern") {
@@ -71,7 +54,8 @@ export function WorldNav() {
     }
   }
 
-  const activeSpace = spaces.find((space) => space.id === active) || spaces[0];
+  const activeSpace = getRoom(active);
+  const tavern = roomRegistry[0];
 
   return (
     <>
@@ -84,9 +68,9 @@ export function WorldNav() {
         </header>
         <p className="world-drawer-intro">一扇门通往不同房间，而所有故事共享同一段记忆。</p>
         <nav className="world-space-list" aria-label="绯界房间">
-          {spaces.map((space, index) => (
+          {roomRegistry.map((space, index) => (
             <button className={active === space.id ? "is-active" : ""} type="button" key={space.id} onClick={() => selectSpace(space)}>
-              <span className="world-space-index">0{index + 1}</span>
+              <span className="world-space-index">{String(index + 1).padStart(2, "0")}</span>
               <span className="world-space-icon">{space.icon}</span>
               <span className="world-space-copy"><strong>{space.name}</strong><small>{space.english}</small><em>{space.description}</em></span>
               <span className="world-space-arrow">↗</span>
@@ -97,18 +81,18 @@ export function WorldNav() {
       </aside>
 
       {active === "journal" ? (
-        <JournalRoom onClose={() => selectSpace(spaces[0])} />
+        <JournalRoom onClose={() => selectSpace(tavern)} />
       ) : active === "wheel" ? (
-        <TimeWheelRoom onClose={() => selectSpace(spaces[0])} />
+        <TimeWheelRoom onClose={() => selectSpace(tavern)} />
       ) : active === "study" ? (
-        <StudyRoom onClose={() => selectSpace(spaces[0])} />
+        <StudyRoom onClose={() => selectSpace(tavern)} />
       ) : active !== "tavern" ? (
         <section className={`world-room-preview room-${active}`} aria-live="polite">
           <div className="world-room-card">
             <span className="world-room-seal">{activeSpace.icon}</span><p>{activeSpace.english}</p><h1>{activeSpace.name}</h1>
             <div className="world-room-rule" /><p className="world-room-description">{activeSpace.description}</p>
             <span className="world-room-status">房间正在布置中</span>
-            <button type="button" onClick={() => selectSpace(spaces[0])}>返回绯夜酒馆</button>
+            <button type="button" onClick={() => selectSpace(tavern)}>返回绯夜酒馆</button>
           </div>
         </section>
       ) : null}
