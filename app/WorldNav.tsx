@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RoomIcon } from "./RoomIcon";
 import { WorldMap } from "./WorldMap";
 import { WorldRoomOutlet } from "./WorldRoomOutlet";
 import { roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
@@ -93,14 +94,14 @@ export function WorldNav() {
           <button type="button" aria-label="关闭侧边栏" onClick={() => setOpen(false)}>×</button>
         </header>
         <button className="world-map-entry" type="button" onClick={openMap}>
-          <span>界</span><strong>绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
+          <span aria-hidden="true">⌖</span><strong>绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
         </button>
         <p className="world-drawer-intro">选择一个房间，继续这一段共享记忆。</p>
         <nav className="world-space-list" aria-label="绯界房间">
           {roomRegistry.map((space, index) => (
             <button className={active === space.id ? "is-active" : ""} type="button" key={space.id} onClick={() => selectSpace(space)}>
               <span className="world-space-index">{String(index + 1).padStart(2, "0")}</span>
-              <span className="world-space-icon">{space.icon}</span>
+              <span className="world-space-icon"><RoomIcon roomId={space.id} /></span>
               <span className="world-space-copy"><strong>{space.name}</strong><small>{space.english}</small><em>{space.description}</em></span>
               <span className="world-space-arrow">›</span>
             </button>
