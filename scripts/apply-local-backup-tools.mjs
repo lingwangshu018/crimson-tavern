@@ -62,7 +62,7 @@ if (!journal.includes("CRIMSON_JOURNAL_LOCAL_BACKUP")) {
       const incomingFolders = Array.isArray(parsed.folders)
         ? parsed.folders.filter((item): item is Folder => Boolean(item && typeof item.id === "string" && typeof item.name === "string"))
         : [];
-      const replaceAll = window.confirm("导入方式：\n\n确定：覆盖当前日记\n取消：与当前日记合并");
+      const replaceAll = window.confirm(["导入方式：", "", "确定：覆盖当前日记", "取消：与当前日记合并"].join("\\n"));
       if (replaceAll) {
         persist(incomingDiaries, incomingFolders);
       } else {
@@ -122,7 +122,7 @@ if (!timeWheel.includes("CRIMSON_TIME_WHEEL_LOCAL_BACKUP")) {
       const value = JSON.parse(await file.text());
       if (!value || value.type !== "crimson-time-wheel-backup" || !Array.isArray(value.history)) throw new Error("这不是绯界时光之轮备份文件");
       const modules = Array.isArray(value.modules) ? value.modules : [];
-      const replaceAll = confirm("导入方式：\\n\\n确定：覆盖当前数据\\n取消：与当前数据合并");
+      const replaceAll = confirm(["导入方式：", "", "确定：覆盖当前数据", "取消：与当前数据合并"].join("\\n"));
       localStorage.setItem(MODULE_KEY, JSON.stringify(replaceAll ? modules : mergeById(readArray(MODULE_KEY), modules)));
       localStorage.setItem(HISTORY_KEY, JSON.stringify(replaceAll ? value.history : mergeById(readArray(HISTORY_KEY), value.history)));
       alert("已导入 " + value.history.length + " 条时光记录，页面将重新载入。");
