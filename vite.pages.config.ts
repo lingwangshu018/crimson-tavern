@@ -5,7 +5,7 @@ const isCloudflareBuild = process.env.CLOUDFLARE_BUILD === "1";
 
 export default defineConfig({
   root: "github-pages",
-  base: isCloudflareBuild ? "/" : "/crimson-tavern/",
+  base: isCloudflareBuild ? "/" : "/crimson-world/",
   publicDir: "../public",
   plugins: [react()],
   build: {
