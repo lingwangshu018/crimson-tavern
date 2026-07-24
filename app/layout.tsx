@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { OpeningScene } from "./OpeningScene";
-import { TavernLife } from "./TavernLife";
-import { CloudCellar } from "./CloudCellar";
 
 export const metadata: Metadata = {
-  title: "绯夜酒馆",
-  description: "一间仅为成年虚构人物开门的标签特调酒馆。",
+  title: "Crimson Café｜绯色咖啡馆",
+  description: "点一杯咖啡，看一段只属于你们的故事。",
   other: {
     "codex-preview": "development",
   },
@@ -24,14 +21,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
-        <meta name="theme-color" content="#100709" />
+        <meta name="theme-color" content="#f4eadf" />
       </head>
-      <body>
-        <OpeningScene />
-        <TavernLife />
-        <CloudCellar />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
