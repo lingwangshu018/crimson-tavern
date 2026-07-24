@@ -111,25 +111,16 @@ if (!cloud.includes("CRIMSON_ASSISTIVE_CLOUD_MENU")) {
 }
 
 if (!nav.includes("CRIMSON_ASSISTIVE_NAV_EVENTS")) {
-  const target = `  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);`;
-  if (!nav.includes(target)) throw new Error("WorldNav keyboard effect target not found");
-  nav = nav.replace(target, `${target}
-
-  useEffect(() => {
+  const marker = "  // CRIMSON_ASSISTIVE_NAV_EVENTS";
+  const eventEffect = `  useEffect(() => {
     function onNavigate(event: Event) {
-      const detail = (event as CustomEvent<{ space?: SpaceId }>).detail;
-      const targetSpace = spaces.find((space) => space.id === detail?.space);
-      if (targetSpace) selectSpace(targetSpace);
+      const detail = (event as CustomEvent<{ space?: RoomId }>).detail;
+      const targetRoom = roomRegistry.find((room) => room.id === detail?.space);
+      if (targetRoom) selectSpace(targetRoom);
     }
     function onReturn() {
       if (active === "tavern") window.history.back();
-      else selectSpace(spaces[0]);
+      else selectSpace(roomRegistry[0]);
     }
     window.addEventListener("crimson:navigate", onNavigate);
     window.addEventListener("crimson:return", onReturn);
@@ -139,8 +130,38 @@ if (!nav.includes("CRIMSON_ASSISTIVE_NAV_EVENTS")) {
     };
   }, [active]);
 
-  // CRIMSON_ASSISTIVE_NAV_EVENTS`);
-  fs.writeFileSync(navPath, nav);
+${marker}`;
+
+  const currentKeyboardEffect = `  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (mapOpen) setMapOpen(false);
+      else setOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mapOpen]);`;
+
+  const legacyKeyboardEffect = `  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);`;
+
+  const keyboardEffect = nav.includes(currentKeyboardEffect)
+    ? currentKeyboardEffect
+    : nav.includes(legacyKeyboardEffect)
+      ? legacyKeyboardEffect
+      : null;
+
+  if (keyboardEffect) {
+    nav = nav.replace(keyboardEffect, `${keyboardEffect}\n\n${eventEffect}`);
+    fs.writeFileSync(navPath, nav);
+  } else {
+    console.warn("Skipped assistive navigation events: compatible WorldNav keyboard effect not found.");
+  }
 }
 
 if (!css.includes("CRIMSON_ASSISTIVE_CLOUD_MENU")) {
