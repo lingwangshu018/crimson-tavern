@@ -1,0 +1,36 @@
+import fs from "node:fs";
+
+const path = new URL("../app/JournalRoom.tsx", import.meta.url);
+let source = fs.readFileSync(path, "utf8");
+
+if (source.includes("CRIMSON_JOURNAL_PAPER_POLISH")) process.exit(0);
+
+function replace(before, after) {
+  if (!source.includes(before)) {
+    throw new Error(`Journal polish target not found: ${before.slice(0, 90)}`);
+  }
+  source = source.replace(before, after);
+}
+
+replace(
+  'import "./journal-room.css";',
+  'import "./journal-room.css";\n\n// CRIMSON_JOURNAL_PAPER_POLISH',
+);
+
+replace(
+  '<header className="journal-header paper-head"><button onClick={() => setView("list")}>‹</button><div><strong>写给机</strong><small>NEW ENTRY</small></div><button className="done" onClick={saveDiary}>完成</button></header>',
+  '<header className="journal-header paper-head"><button className="journal-back-button" type="button" onClick={() => setView("list")} aria-label="返回日记本"><span aria-hidden="true">‹</span><em>返回</em></button><div><strong>写给机</strong><small>NEW ENTRY</small></div><button className="done" onClick={saveDiary}>完成</button></header>',
+);
+
+replace(
+  '{(["default", "grid", "blank", "night"] as PaperStyle[]).map((item) => <button key={item} className={paper === item ? "active" : ""} onClick={() => setPaper(item)} aria-label={item} />)}',
+  '<button type="button" className={`paper-choice paper-choice-default ${paper === "default" ? "active" : ""}`} onClick={() => setPaper("default")} aria-label="横线纸"><span /><small>横线</small></button><button type="button" className={`paper-choice paper-choice-grid ${paper === "grid" ? "active" : ""}`} onClick={() => setPaper("grid")} aria-label="方格纸"><span /><small>方格</small></button><button type="button" className={`paper-choice paper-choice-blank ${paper === "blank" ? "active" : ""}`} onClick={() => setPaper("blank")} aria-label="空白纸"><span /><small>空白</small></button><button type="button" className={`paper-choice paper-choice-night ${paper === "night" ? "active" : ""}`} onClick={() => setPaper("night")} aria-label="夜间纸"><span /><small>夜间</small></button>',
+);
+
+replace(
+  '<header className="journal-reader-actions"><button onClick={() => setView("list")}>‹</button>',
+  '<header className="journal-reader-actions"><button className="journal-reader-back" type="button" onClick={() => setView("list")} aria-label="返回日记本"><span aria-hidden="true">‹</span><em>返回日记本</em></button>',
+);
+
+fs.writeFileSync(path, source);
+console.log("Applied journal paper and navigation polish.");
