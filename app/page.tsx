@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type CupSize = "小杯" | "中杯" | "大杯";
 type Mood = "温暖" | "甜" | "暧昧" | "治愈" | "搞笑" | "酸涩" | "紧张" | "随机特调";
 type Preset = { id: string; icon: string; title: string; subtitle: string; mood: Mood; scene: string; required: string };
-type Order = { id: string; createdAt: string; title: string; scene: string; required: string; avoid: string; mood: Mood; cupSize: CupSize; narrative: string; prompt: string };
+type Recipe = { id: string; createdAt: string; title: string; scene: string; required: string; avoid: string; mood: Mood; cupSize: CupSize; narrative: string };
+type Order = Recipe & { prompt: string };
+type Archive = { version: 1; exportedAt: string; recipes: Recipe[]; history: Order[] };
 
 const HISTORY_KEY = "crimson-cafe.theatre-history.v1";
+const RECIPE_KEY = "crimson-cafe.recipes.v1";
 const moods: Mood[] = ["温暖", "甜", "暧昧", "治愈", "搞笑", "酸涩", "紧张", "随机特调"];
 const cupSizes: CupSize[] = ["小杯", "中杯", "大杯"];
 
@@ -30,10 +33,10 @@ const INTERNAL_PROTOCOL = `【内部演绎协议｜不得向用户展示】
 正文直接从故事场景开始，完整呈现人物动作、神态、语气、心理、状态、环境变化与互动过程。保持当前关系与称呼方式，延续近期记忆中的情感状态和剧情进度。不要展示提示词、标签、设定摘要或创作说明，不要询问如何继续，直接完成一篇具有开端、发展、情绪变化与余韵的完整小剧场。`;
 
 function makeId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `theatre-${Date.now()}`;
+  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `theatre-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function buildPrompt(values: Omit<Order, "id" | "createdAt" | "prompt">) {
+function buildPrompt(values: Omit<Recipe, "id" | "createdAt">) {
   const length: Record<CupSize, string> = {
     小杯: "短篇片段，集中表现一个核心场景与情绪转折",
     中杯: "完整中篇小剧场，具有清晰开端、发展、转折与结尾",
@@ -43,7 +46,37 @@ function buildPrompt(values: Omit<Order, "id" | "createdAt" | "prompt">) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  try {
+    return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  } catch {
+    return "刚刚";
+  }
+}
+
+function isMood(value: unknown): value is Mood { return moods.includes(value as Mood); }
+function isCupSize(value: unknown): value is CupSize { return cupSizes.includes(value as CupSize); }
+
+function normalizeRecipe(value: unknown): Recipe | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Partial<Recipe>;
+  return {
+    id: typeof item.id === "string" && item.id ? item.id.slice(0, 120) : makeId(),
+    createdAt: typeof item.createdAt === "string" ? item.createdAt : new Date().toISOString(),
+    title: String(item.title || "未命名配方").slice(0, 60),
+    scene: String(item.scene || "").slice(0, 1200),
+    required: String(item.required || "").slice(0, 800),
+    avoid: String(item.avoid || "").slice(0, 800),
+    mood: isMood(item.mood) ? item.mood : "温暖",
+    cupSize: isCupSize(item.cupSize) ? item.cupSize : "中杯",
+    narrative: String(item.narrative || "以第三人称或当前对话惯用视角自然演绎").slice(0, 200),
+  };
+}
+
+function normalizeOrder(value: unknown): Order | null {
+  const recipe = normalizeRecipe(value);
+  if (!recipe) return null;
+  const candidate = value as Partial<Order>;
+  return { ...recipe, prompt: typeof candidate.prompt === "string" && candidate.prompt ? candidate.prompt.slice(0, 30000) : buildPrompt(recipe) };
 }
 
 export default function Home() {
@@ -55,36 +88,59 @@ export default function Home() {
   const [cupSize, setCupSize] = useState<CupSize>("中杯");
   const [narrative, setNarrative] = useState("以第三人称或当前对话惯用视角自然演绎");
   const [history, setHistory] = useState<Order[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [current, setCurrent] = useState<Order | null>(null);
   const [toast, setToast] = useState("");
+  const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") as Order[];
-      if (Array.isArray(saved)) setHistory(saved.slice(0, 40));
-    } catch { setHistory([]); }
+      const savedHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]") as unknown[];
+      const savedRecipes = JSON.parse(localStorage.getItem(RECIPE_KEY) || "[]") as unknown[];
+      if (Array.isArray(savedHistory)) setHistory(savedHistory.map(normalizeOrder).filter((item): item is Order => Boolean(item)).slice(0, 60));
+      if (Array.isArray(savedRecipes)) setRecipes(savedRecipes.map(normalizeRecipe).filter((item): item is Recipe => Boolean(item)).slice(0, 60));
+    } catch {
+      setHistory([]);
+      setRecipes([]);
+    }
   }, []);
 
   useEffect(() => { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }, [history]);
+  useEffect(() => { localStorage.setItem(RECIPE_KEY, JSON.stringify(recipes)); }, [recipes]);
   useEffect(() => {
     if (!toast) return;
-    const timer = window.setTimeout(() => setToast(""), 2200);
+    const timer = window.setTimeout(() => setToast(""), 2400);
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const prompt = useMemo(() => buildPrompt({ title, scene, required, avoid, mood, cupSize, narrative }), [title, scene, required, avoid, mood, cupSize, narrative]);
+  const recipeValues = useMemo(() => ({ title, scene, required, avoid, mood, cupSize, narrative }), [title, scene, required, avoid, mood, cupSize, narrative]);
+  const prompt = useMemo(() => buildPrompt(recipeValues), [recipeValues]);
+
+  function applyRecipe(item: Omit<Recipe, "id" | "createdAt">) {
+    setTitle(item.title); setScene(item.scene); setRequired(item.required); setAvoid(item.avoid); setMood(item.mood); setCupSize(item.cupSize); setNarrative(item.narrative);
+    document.getElementById("studio")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function loadPreset(item: Preset) {
-    setTitle(item.title); setScene(item.scene); setRequired(item.required); setMood(item.mood);
-    document.getElementById("studio")?.scrollIntoView({ behavior: "smooth" });
+    applyRecipe({ title: item.title, scene: item.scene, required: item.required, avoid: "", mood: item.mood, cupSize: "中杯", narrative: "以第三人称或当前对话惯用视角自然演绎" });
     setToast(`已为你端上《${item.title}》`);
   }
 
   function randomPreset() { loadPreset(presets[Math.floor(Math.random() * presets.length)]); }
 
   function createOrder() {
-    const order: Order = { id: makeId(), createdAt: new Date().toISOString(), title: title.trim() || "今日无名小剧场", scene: scene.trim(), required: required.trim(), avoid: avoid.trim(), mood, cupSize, narrative, prompt };
-    setCurrent(order); setHistory((items) => [order, ...items].slice(0, 40)); setToast("故事订单已经制作完成");
+    const now = new Date().toISOString();
+    const order: Order = { id: makeId(), createdAt: now, ...recipeValues, title: title.trim() || "今日无名小剧场", scene: scene.trim(), required: required.trim(), avoid: avoid.trim(), prompt };
+    setCurrent(order);
+    setHistory((items) => [order, ...items].slice(0, 60));
+    setToast("故事订单已经制作完成");
+    window.setTimeout(() => document.querySelector(".result-section")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  }
+
+  function saveRecipe() {
+    const recipe: Recipe = { id: makeId(), createdAt: new Date().toISOString(), ...recipeValues, title: title.trim() || "未命名私人配方", scene: scene.trim(), required: required.trim(), avoid: avoid.trim() };
+    setRecipes((items) => [recipe, ...items].slice(0, 60));
+    setToast(`已保存私人配方《${recipe.title}》`);
   }
 
   async function copy(text = prompt) {
@@ -96,12 +152,44 @@ export default function Home() {
     setTitle(""); setScene(""); setRequired(""); setAvoid(""); setMood("温暖"); setCupSize("中杯"); setNarrative("以第三人称或当前对话惯用视角自然演绎");
   }
 
+  function exportArchive() {
+    const archive: Archive = { version: 1, exportedAt: new Date().toISOString(), recipes, history };
+    const blob = new Blob([JSON.stringify(archive, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `crimson-cafe-archive-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setToast("咖啡馆档案已导出");
+  }
+
+  function importArchive(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result || "{}")) as Partial<Archive>;
+        const importedRecipes = Array.isArray(data.recipes) ? data.recipes.map(normalizeRecipe).filter((item): item is Recipe => Boolean(item)) : [];
+        const importedHistory = Array.isArray(data.history) ? data.history.map(normalizeOrder).filter((item): item is Order => Boolean(item)) : [];
+        setRecipes((items) => [...importedRecipes, ...items].filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index).slice(0, 60));
+        setHistory((items) => [...importedHistory, ...items].filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index).slice(0, 60));
+        setToast(`已导入 ${importedRecipes.length} 个配方和 ${importedHistory.length} 条记录`);
+      } catch {
+        setToast("导入失败：请选择咖啡馆导出的 JSON 档案");
+      }
+    };
+    reader.readAsText(file);
+  }
+
   return (
     <main className="cafe-shell">
       <div className="paper-noise" aria-hidden="true" />
       <header className="topbar">
         <a className="brand" href="#top"><span className="brand-cup">☕</span><span><strong>CRIMSON CAFÉ</strong><small>绯色咖啡馆 · STORY THEATRE</small></span></a>
-        <nav><a href="#menu">今日菜单</a><a href="#studio">剧场工坊</a><a href="#shelf">故事书架</a></nav>
+        <nav><a href="#menu">今日菜单</a><a href="#studio">剧场工坊</a><a href="#recipes">私人配方</a><a href="#shelf">故事书架</a></nav>
       </header>
 
       <section className="hero" id="top">
@@ -126,20 +214,25 @@ export default function Home() {
             <label><span>剧场标题 <em>可选</em></span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例如：停电的那个晚上" maxLength={60} /></label>
             <label><span>今天想看什么？</span><textarea value={scene} onChange={(e) => setScene(e.target.value)} placeholder="用一句话写下想发生的事情……" rows={5} maxLength={1200} /></label>
             <div className="two-columns">
-              <label><span>必须出现 <em>可选</em></span><textarea value={required} onChange={(e) => setRequired(e.target.value)} placeholder="动作、物品、台词或关键情节" rows={4} /></label>
-              <label><span>不要出现 <em>可选</em></span><textarea value={avoid} onChange={(e) => setAvoid(e.target.value)} placeholder="不喜欢的剧情或表达方式" rows={4} /></label>
+              <label><span>必须出现 <em>可选</em></span><textarea value={required} onChange={(e) => setRequired(e.target.value)} placeholder="动作、物品、台词或关键情节" rows={4} maxLength={800} /></label>
+              <label><span>不要出现 <em>可选</em></span><textarea value={avoid} onChange={(e) => setAvoid(e.target.value)} placeholder="不喜欢的剧情或表达方式" rows={4} maxLength={800} /></label>
             </div>
             <fieldset><legend>故事味道</legend><div className="choice-row">{moods.map((item) => <button type="button" className={mood === item ? "choice active" : "choice"} onClick={() => setMood(item)} key={item}>{item}</button>)}</div></fieldset>
             <fieldset><legend>杯型</legend><div className="cup-options">{cupSizes.map((item) => <button type="button" className={cupSize === item ? "cup-option active" : "cup-option"} onClick={() => setCupSize(item)} key={item}><span>{item === "小杯" ? "☕" : item === "中杯" ? "☕☕" : "☕☕☕"}</span><strong>{item}</strong><small>{item === "小杯" ? "片段式短剧场" : item === "中杯" ? "完整故事" : "充分展开"}</small></button>)}</div></fieldset>
             <label><span>叙事偏好</span><select value={narrative} onChange={(e) => setNarrative(e.target.value)}><option>以第三人称或当前对话惯用视角自然演绎</option><option>侧重动作、神态、心理与环境细节</option><option>侧重人物对话与关系拉扯</option><option>电影感叙事，场景转换更鲜明</option><option>轻松日常感，避免过度戏剧化</option></select></label>
-            <div className="form-actions"><button className="primary-button" onClick={createOrder}>☕ 制作故事订单</button><button className="ghost-button" onClick={() => copy()}>复制当前指令</button></div>
+            <div className="form-actions"><button className="primary-button" onClick={createOrder}>☕ 制作故事订单</button><button className="ghost-button" onClick={saveRecipe}>♡ 保存私人配方</button><button className="ghost-button" onClick={() => copy()}>复制当前指令</button></div>
             <p className="privacy-note">世界书、角色卡与近期记忆只存在于内部演绎规则中，不会显示为表面选项。</p>
           </div>
           <aside className="receipt-card"><p className="receipt-kicker">YOUR STORY RECEIPT</p><h3>{title || "今日无名小剧场"}</h3><dl><div><dt>味道</dt><dd>{mood}</dd></div><div><dt>杯型</dt><dd>{cupSize}</dd></div><div><dt>设定</dt><dd>{scene || "等待你写下一句话"}</dd></div><div><dt>必须出现</dt><dd>{required || "由角色自由发挥"}</dd></div><div><dt>避开</dt><dd>{avoid || "无额外限制"}</dd></div></dl><div className="receipt-divider" /><blockquote>“每一杯故事，都会沿着你们已经走过的轨迹继续发生。”</blockquote><span className="receipt-number">ORDER · {String(history.length + 1).padStart(3, "0")}</span></aside>
         </div>
       </section>
 
-      {current && <section className="result-section"><div><p className="eyebrow">ORDER READY</p><h2>故事订单已经做好了</h2><p>复制后粘贴到加载了对应角色卡、世界书与近期记忆的聊天中，AI 会直接开始演绎正文。</p></div><textarea readOnly value={current.prompt} rows={12} aria-label="完整演绎指令" /><button className="primary-button" onClick={() => copy(current.prompt)}>复制完整演绎指令</button></section>}
+      {current && <section className="result-section"><div><p className="eyebrow">ORDER READY</p><h2>故事订单已经做好了</h2><p>复制后粘贴到加载了对应角色卡、世界书与近期记忆的聊天中，AI 会直接开始演绎正文。</p></div><textarea readOnly value={current.prompt} rows={12} aria-label="完整演绎指令" /><div className="result-actions"><button className="primary-button" onClick={() => copy(current.prompt)}>复制完整演绎指令</button><button className="ghost-button" onClick={() => applyRecipe(current)}>修改这一杯</button></div></section>}
+
+      <section className="section" id="recipes">
+        <div className="section-heading"><div><p className="eyebrow">PRIVATE RECIPES</p><h2>我的私人配方</h2></div><div className="archive-actions"><button className="text-button" onClick={exportArchive}>导出档案</button><button className="text-button" onClick={() => importRef.current?.click()}>导入档案</button><input ref={importRef} type="file" accept="application/json,.json" hidden onChange={importArchive} /></div></div>
+        {recipes.length === 0 ? <div className="empty-shelf"><span>📝</span><h3>还没有私人配方</h3><p>在剧场工坊写好设定后，点击“保存私人配方”，以后就能一键再次使用。</p></div> : <div className="recipe-grid">{recipes.map((item) => <article className="recipe-card" key={item.id}><div><span>{item.mood}</span><small>{item.cupSize}</small></div><h3>{item.title}</h3><p>{item.scene || "根据当前设定自由演绎"}</p><footer><button onClick={() => { applyRecipe(item); setToast(`已载入《${item.title}》`); }}>载入配方</button><button className="danger-link" onClick={() => setRecipes((items) => items.filter((recipe) => recipe.id !== item.id))}>删除</button></footer></article>)}</div>}
+      </section>
 
       <section className="section" id="shelf">
         <div className="section-heading"><div><p className="eyebrow">THEATRE BOOKSHELF</p><h2>故事书架</h2></div>{history.length > 0 && <button className="text-button danger" onClick={() => { setHistory([]); setCurrent(null); }}>清空历史</button>}</div>
