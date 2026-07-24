@@ -117,9 +117,24 @@ export function WorldNav() {
               <span className="world-space-index">{String(index + 1).padStart(2, "0")}</span>
               <span className="world-space-icon"><RoomIcon roomId={space.id} /></span>
               <span className="world-space-copy">
-                <span className="world-space-title-row">
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <strong>{sidebarNames[space.id]}</strong>
-                  <span className={`world-space-status is-${space.status}`}>{space.status === "ready" ? "已开放" : "布置中"}</span>
+                  <span
+                    style={{
+                      flex: "0 0 auto",
+                      padding: "2px 7px",
+                      border: "1px solid rgba(203,168,107,.28)",
+                      borderRadius: 999,
+                      color: space.status === "ready" ? "var(--gold-bright)" : "var(--faint)",
+                      background: space.status === "ready" ? "rgba(151,42,64,.12)" : "rgba(255,255,255,.025)",
+                      fontSize: 8,
+                      lineHeight: 1.4,
+                      letterSpacing: ".08em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {space.status === "ready" ? "已开放" : "布置中"}
+                  </span>
                 </span>
                 <small>{space.english}</small>
                 <em>{space.description}</em>
