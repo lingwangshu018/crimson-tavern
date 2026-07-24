@@ -18,6 +18,7 @@ const patches = [
   { file: "apply-static-world-trigger.mjs", label: "static world trigger", optional: true },
   { file: "apply-time-wheel-ai-tools.mjs", label: "time wheel AI read reply and locate" },
   { file: "apply-time-wheel-room.mjs", label: "time wheel room" },
+  { file: "apply-local-backup-tools.mjs", label: "journal and time wheel backups" },
   { file: "apply-study-room.mjs", label: "study rooms" },
 ];
 
