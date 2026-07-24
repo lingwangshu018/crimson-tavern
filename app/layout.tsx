@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { OpeningScene } from "./OpeningScene";
 
 export const metadata: Metadata = {
   title: "绯夜酒馆",
@@ -23,7 +24,10 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#100709" />
       </head>
-      <body>{children}</body>
+      <body>
+        <OpeningScene />
+        {children}
+      </body>
     </html>
   );
 }
