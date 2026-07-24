@@ -1,33 +1,44 @@
 /* Static artwork supplied for the currently implemented Crimson World rooms. */
 
-/* Use the repository's tavern artwork as the actual tavern scene background. */
-.tavern-scene {
-  min-height: clamp(420px, 58vw, 620px) !important;
-  background-color: #12080b !important;
+/* Use the supplied tavern artwork as the background of the whole tavern page. */
+.site-shell {
+  background-color: #0c0507;
   background-image:
-    linear-gradient(180deg, rgba(8, 3, 5, 0.06), rgba(8, 3, 5, 0.28)),
-    url("https://lingwangshu018.github.io/crimson-world/assets/tavern-bg.webp") !important;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
-  backdrop-filter: none !important;
+    linear-gradient(180deg, rgba(8, 3, 5, 0.34), rgba(8, 3, 5, 0.58)),
+    url("https://lingwangshu018.github.io/crimson-world/assets/tavern-bg.webp");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
-/* Disable the temporary image layers; the existing tavern contents remain unchanged. */
+/* These were temporary experimental layers. Keep them out of the rendered scene. */
 .tavern-background-art,
 .tavern-bartender-art {
   display: none !important;
 }
 
-/* Keep existing tavern decorations, bartender and UI above the new background. */
+/* Restore the original tavern scene, including its CSS bartender and shelves. */
+.tavern-scene {
+  min-height: 298px !important;
+  background:
+    linear-gradient(180deg, rgba(91, 29, 39, 0.16), rgba(5, 2, 3, 0.72)),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 76px,
+      rgba(203, 168, 107, 0.045) 76px 77px
+    ),
+    #15090d !important;
+  backdrop-filter: initial !important;
+}
+
 .tavern-scene > .lamp,
 .tavern-scene > .bottles,
 .tavern-scene > .shelf,
 .tavern-scene > .bartender-figure,
 .tavern-scene > .bar-counter,
 .tavern-scene > .bar-plaque {
-  position: absolute;
-  z-index: 2;
+  display: block !important;
 }
 
 /* Library room background. */
@@ -56,9 +67,9 @@
 }
 
 @media (max-width: 720px) {
-  .tavern-scene {
-    min-height: 620px !important;
-    background-position: center center !important;
+  .site-shell {
+    background-position: 50% top;
+    background-attachment: scroll;
   }
 
   .journal-room {
