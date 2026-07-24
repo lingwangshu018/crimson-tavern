@@ -8,6 +8,7 @@ const patches = [
   { file: "apply-world-nav.mjs", label: "world navigation" },
   { file: "apply-layered-tavern-art.mjs", label: "layered tavern artwork" },
   { file: "apply-journal-ai-mailbox.mjs", label: "journal mailbox" },
+  { file: "apply-journal-sync-metadata.mjs", label: "journal sync metadata" },
   { file: "apply-journal-paper-polish.mjs", label: "journal paper theme" },
   { file: "apply-journal-pin-favorite.mjs", label: "journal pin and favorite" },
   { file: "apply-cloud-orb-top-layer.mjs", label: "cloud orb layer" },
