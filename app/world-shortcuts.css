@@ -1,0 +1,68 @@
+.world-shortcuts {
+  position: fixed;
+  z-index: 2147483000;
+  top: 22px;
+  left: 22px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.world-shortcuts .world-trigger,
+.world-map-trigger {
+  position: static;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: var(--gold-bright);
+  box-shadow: 0 12px 34px rgba(0,0,0,.38), inset 0 0 16px rgba(0,0,0,.32);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.world-map-trigger {
+  background: radial-gradient(circle at 34% 22%, rgba(255,255,255,.12), transparent 30%), linear-gradient(155deg, #5b3d72, #170d20);
+}
+
+.world-map-trigger::after {
+  content: "MAP";
+  position: absolute;
+  top: 54px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: var(--faint);
+  background: rgba(8,4,6,.72);
+  font-family: Georgia, serif;
+  font-size: 7px;
+  letter-spacing: .12em;
+  opacity: 0;
+  transform: translateY(-3px);
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+.world-map-trigger:hover::after,
+.world-map-trigger:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 760px) {
+  .world-shortcuts {
+    top: 14px;
+    left: 14px;
+    gap: 8px;
+  }
+
+  .world-shortcuts .world-trigger,
+  .world-map-trigger {
+    width: 44px;
+    height: 44px;
+  }
+
+  .world-map-trigger::after {
+    display: none;
+  }
+}
