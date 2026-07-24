@@ -40,23 +40,21 @@
 
 .tavern-bartender-art {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   left: 50%;
-  bottom: 34px;
+  bottom: 18px;
   display: block !important;
-  width: min(72%, 420px);
-  height: 88%;
+  width: min(78%, 460px);
+  height: 92%;
   object-fit: cover;
   object-position: center 18%;
   transform: translateX(-50%);
   pointer-events: none;
   user-select: none;
   filter: brightness(1.04) contrast(1.03) drop-shadow(0 14px 24px rgba(0, 0, 0, 0.48));
-  -webkit-mask-image: linear-gradient(to bottom, #000 0 76%, transparent 100%);
-  mask-image: linear-gradient(to bottom, #000 0 76%, transparent 100%);
 }
 
-/* Keep the original scenery and counter around the new bartender. */
+/* Keep the original scenery behind the bartender. */
 .tavern-scene > .lamp,
 .tavern-scene > .bottles,
 .tavern-scene > .shelf {
@@ -64,11 +62,17 @@
   z-index: 1;
 }
 
-.tavern-scene > .bar-counter,
-.tavern-scene > .bar-plaque {
+/* The bartender now sits in front of the counter; keep only the plaque above it. */
+.tavern-scene > .bar-counter {
   display: block !important;
   position: absolute;
   z-index: 4;
+}
+
+.tavern-scene > .bar-plaque {
+  display: block !important;
+  position: absolute;
+  z-index: 6;
 }
 
 /* Library room background. */
@@ -103,9 +107,9 @@
   }
 
   .tavern-bartender-art {
-    bottom: 36px;
-    width: 82%;
-    height: 86%;
+    bottom: 14px;
+    width: 88%;
+    height: 91%;
     object-position: center 16%;
   }
 
