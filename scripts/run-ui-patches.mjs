@@ -13,12 +13,14 @@ const patches = [
   { file: "apply-journal-pin-favorite.mjs", label: "journal pin and favorite" },
   { file: "apply-cloud-orb-top-layer.mjs", label: "cloud orb layer" },
   { file: "apply-cloud-journal-archive.mjs", label: "cloud journal archive" },
+  { file: "apply-unified-cloud-archive.mjs", label: "unified cloud archive" },
   { file: "apply-assistive-cloud-menu.mjs", label: "cloud assistive menu" },
   // This is a compatibility polish. A changed selector must not block every room build.
   { file: "apply-static-world-trigger.mjs", label: "static world trigger", optional: true },
   { file: "apply-time-wheel-ai-tools.mjs", label: "time wheel AI read reply and locate" },
   { file: "apply-time-wheel-room.mjs", label: "time wheel room" },
   { file: "apply-local-backup-tools.mjs", label: "journal and time wheel backups" },
+  { file: "apply-unified-vault-keys.mjs", label: "shared vault API and keys" },
   { file: "apply-study-room.mjs", label: "study rooms" },
 ];
 
