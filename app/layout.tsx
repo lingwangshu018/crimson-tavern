@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./room-backgrounds.css";
 import { OpeningScene } from "./OpeningScene";
 import { TavernLife } from "./TavernLife";
 import { CloudCellar } from "./CloudCellar";
