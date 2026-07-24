@@ -42,7 +42,7 @@ export function WorldNav() {
 
   useEffect(() => {
     const cloudWords = /保存到\s*cloud|save\s*to\s*cloud|cloud\s*save|云端存档|保存到云端/i;
-    function liftOriginalCloudControl() {
+    function removeOriginalCloudControl() {
       const candidates = Array.from(document.querySelectorAll<HTMLElement>("button, a, [role='button']"));
       for (const candidate of candidates) {
         if (candidate.closest(".ai-vault, .journal-mailbox, .vault-actions, .world-drawer, .world-map-shell")) continue;
@@ -55,16 +55,16 @@ export function WorldNav() {
           if (position === "fixed" || position === "sticky") { floating = parent; break; }
           parent = parent.parentElement;
         }
-        floating.dataset.crimsonCloudFloating = "true";
-        floating.style.setProperty("z-index", "2147483646", "important");
-        floating.style.setProperty("pointer-events", "auto", "important");
+        floating.dataset.crimsonCloudFloating = "hidden";
+        floating.style.setProperty("display", "none", "important");
+        floating.style.setProperty("visibility", "hidden", "important");
+        floating.style.setProperty("pointer-events", "none", "important");
       }
     }
-    liftOriginalCloudControl();
-    const observer = new MutationObserver(liftOriginalCloudControl);
+    removeOriginalCloudControl();
+    const observer = new MutationObserver(removeOriginalCloudControl);
     observer.observe(document.body, { childList: true, subtree: true });
-    window.addEventListener("resize", liftOriginalCloudControl);
-    return () => { observer.disconnect(); window.removeEventListener("resize", liftOriginalCloudControl); };
+    return () => observer.disconnect();
   }, []);
 
   function selectSpace(space: RoomDefinition) {
