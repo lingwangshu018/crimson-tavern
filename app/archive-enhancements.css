@@ -1,0 +1,63 @@
+.diary-meta-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 20px 14px;
+}
+
+.diary-meta-button {
+  border: 1px solid rgba(203, 168, 107, 0.28);
+  border-radius: 999px;
+  padding: 7px 12px;
+  color: var(--muted);
+  background: rgba(10, 4, 6, 0.52);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.diary-meta-button:hover,
+.diary-meta-button:focus-visible {
+  border-color: var(--gold);
+  color: var(--gold-bright);
+}
+
+.diary-meta-button.active {
+  border-color: rgba(212, 77, 99, 0.65);
+  color: var(--gold-bright);
+  background: rgba(79, 17, 29, 0.58);
+}
+
+.record-card.is-pinned {
+  border-color: rgba(241, 217, 166, 0.58);
+  box-shadow: 0 0 0 1px rgba(241, 217, 166, 0.08), 0 20px 48px rgba(0, 0, 0, 0.28);
+}
+
+.record-card.is-pinned::before {
+  content: "置顶日记";
+  position: absolute;
+  top: 10px;
+  right: 18px;
+  color: var(--gold-bright);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+}
+
+.record-card.is-favorite .record-main > strong::after {
+  content: " ★";
+  color: var(--gold-bright);
+}
+
+.record-card {
+  position: relative;
+}
+
+@media (max-width: 720px) {
+  .diary-meta-actions {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .diary-meta-button {
+    flex: 1;
+  }
+}
