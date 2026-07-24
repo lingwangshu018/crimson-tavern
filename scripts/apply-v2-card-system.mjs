@@ -4,9 +4,28 @@ const path = new URL("../app/page.tsx", import.meta.url);
 let source = fs.readFileSync(path, "utf8");
 if (source.includes("CRIMSON_TAVERN_V2_CARD_SYSTEM")) process.exit(0);
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function replace(before, after) {
-  if (!source.includes(before)) throw new Error(`V2 patch target not found: ${before.slice(0, 80)}`);
-  source = source.replace(before, after);
+  if (source.includes(before)) {
+    source = source.replace(before, after);
+    return;
+  }
+
+  // Keep the patch resilient to formatting-only changes made by Prettier or
+  // manual edits. Match the same lines while ignoring leading indentation.
+  const flexiblePattern = before
+    .split("\n")
+    .map((line) => `[\\t ]*${escapeRegExp(line.trimStart())}`)
+    .join("\\r?\\n");
+  const matcher = new RegExp(flexiblePattern);
+
+  if (!matcher.test(source)) {
+    throw new Error(`V2 patch target not found: ${before.slice(0, 80)}`);
+  }
+  source = source.replace(matcher, after);
 }
 
 replace('import menuData from "./menu-data.json";', 'import menuData from "./menu-data.json";\nimport "./v2.css";\n\n// CRIMSON_TAVERN_V2_CARD_SYSTEM');
