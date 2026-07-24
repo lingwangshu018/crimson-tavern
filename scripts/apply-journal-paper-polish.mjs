@@ -14,7 +14,7 @@ function replace(before, after) {
 
 replace(
   'import "./journal-room.css";',
-  'import "./journal-room.css";\n\n// CRIMSON_JOURNAL_PAPER_POLISH',
+  'import "./journal-room.css";\nimport "./journal-polish.css";\n\n// CRIMSON_JOURNAL_PAPER_POLISH',
 );
 
 replace(
