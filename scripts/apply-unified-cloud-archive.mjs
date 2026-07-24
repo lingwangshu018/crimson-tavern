@@ -131,7 +131,7 @@ replace(
 
   async function pullAllReplies() {
     const key = ownerKey || read(OWNER_KEY);
-    if (!KEY_PATTERN.test(key)) return setMessage("请先完成一次全部同步。\n");
+    if (!KEY_PATTERN.test(key)) return setMessage("请先完成一次全部同步。");
     setMessage("正在收取所有项目的 AI 回复……");
     try {
       const response = await fetch(\`${'${apiUrl}'}?limit=500\`, { headers: { Authorization: \`Bearer ${'${key}'}\`, Accept: "application/json" } });
