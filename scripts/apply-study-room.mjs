@@ -1,21 +1,68 @@
 import fs from "node:fs";
 
-const path = new URL("../app/WorldNav.tsx", import.meta.url);
-let source = fs.readFileSync(path, "utf8");
+const navPath = new URL("../app/WorldNav.tsx", import.meta.url);
+let source = fs.readFileSync(navPath, "utf8");
+let changed = false;
 
-if (!source.includes('import { StudyRoom } from "./StudyRoom";')) {
-  source = source.replace('import { TimeWheelRoom } from "./TimeWheelRoom";\n', 'import { TimeWheelRoom } from "./TimeWheelRoom";\nimport { StudyRoom } from "./StudyRoom";\n');
+const importLine = 'import { StudyRoom } from "./StudyRoom";';
+if (!source.includes(importLine)) {
+  const wheelImport = 'import { TimeWheelRoom } from "./TimeWheelRoom";';
+  if (!source.includes(wheelImport)) {
+    console.warn("Skipped Study Room import: TimeWheelRoom import anchor was not found.");
+  } else {
+    source = source.replace(wheelImport, `${wheelImport}\n${importLine}`);
+    changed = true;
+  }
 }
 
-source = source.replace('type SpaceId = "tavern" | "cafe" | "journal" | "wheel";', 'type SpaceId = "tavern" | "cafe" | "journal" | "wheel" | "study";');
+if (!source.includes('"study"')) {
+  const typePattern = /type SpaceId = ([^;]+);/;
+  const match = source.match(typePattern);
+  if (!match) {
+    console.warn("Skipped Study Room type integration: SpaceId declaration was not found.");
+  } else {
+    const values = match[1].trim();
+    source = source.replace(typePattern, `type SpaceId = ${values} | "study";`);
+    changed = true;
+  }
+}
 
 if (!source.includes('id: "study"')) {
-  source = source.replace('  {\n    id: "wheel",\n    icon: "轮",\n    name: "时光之轮",\n    english: "THE WHEEL OF TIME",\n    description: "沿时间回望故事、选择与留下的痕迹",\n  },\n', '  {\n    id: "wheel",\n    icon: "轮",\n    name: "时光之轮",\n    english: "THE WHEEL OF TIME",\n    description: "沿时间回望故事、选择与留下的痕迹",\n  },\n  {\n    id: "study",\n    icon: "习",\n    name: "自习室",\n    english: "THE STUDY ROOMS",\n    description: "在静谧与柔软之间，选择今晚的书桌",\n  },\n');
+  const wheelEntry = /(\{ id: "wheel", icon: "轮", name: "时光之轮", english: "THE WHEEL OF TIME", description: "沿时间回望故事、选择与留下的痕迹" \},)/;
+  if (!wheelEntry.test(source)) {
+    console.warn("Skipped Study Room navigation entry: Time Wheel entry anchor was not found.");
+  } else {
+    source = source.replace(
+      wheelEntry,
+      `$1\n  { id: "study", icon: "习", name: "自习室", english: "THE STUDY ROOMS", description: "在静谧与柔软之间，选择今晚的书桌" },`,
+    );
+    changed = true;
+  }
 }
 
-if (!source.includes('active === "study"')) {
-  source = source.replace('      ) : active !== "tavern" ? (', '      ) : active === "study" ? (\n        <StudyRoom onClose={() => selectSpace(spaces[0])} />\n      ) : active !== "tavern" ? (');
+const renderLine = '<StudyRoom onClose={() => selectSpace(spaces[0])} />';
+if (!source.includes(renderLine)) {
+  const wheelBranch = /(active === "wheel" \? \(\s*<TimeWheelRoom onClose=\{\(\) => selectSpace\(spaces\[0\]\)\} \/>\s*\) : )(active !== "tavern" \? \()/m;
+  if (!wheelBranch.test(source)) {
+    console.warn("Skipped Study Room render integration: Time Wheel branch anchor was not found.");
+  } else {
+    source = source.replace(
+      wheelBranch,
+      `$1active === "study" ? (\n        <StudyRoom onClose={() => selectSpace(spaces[0])} />\n      ) : $2`,
+    );
+    changed = true;
+  }
 }
 
-fs.writeFileSync(path, source);
-console.log("Applied study-room navigation integration.");
+if (changed) fs.writeFileSync(navPath, source);
+
+const complete =
+  source.includes(importLine) &&
+  source.includes('id: "study"') &&
+  source.includes(renderLine);
+
+if (complete) {
+  console.log(changed ? "Applied study-room navigation integration." : "Study Room already integrated; skipped.");
+} else {
+  console.warn("Study Room patch incomplete; existing source was left intact where anchors were unavailable.");
+}
