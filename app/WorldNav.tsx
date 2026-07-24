@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { JournalRoom } from "./JournalRoom";
 import "./world-nav.css";
 
 type SpaceId = "tavern" | "cafe" | "journal" | "wheel";
@@ -127,7 +128,9 @@ export function WorldNav() {
         </footer>
       </aside>
 
-      {active !== "tavern" ? (
+      {active === "journal" ? (
+        <JournalRoom onClose={() => selectSpace(spaces[0])} />
+      ) : active !== "tavern" ? (
         <section className={`world-room-preview room-${active}`} aria-live="polite">
           <div className="world-room-card">
             <span className="world-room-seal">{activeSpace.icon}</span>
