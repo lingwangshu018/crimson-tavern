@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import "./world-nav.css";
 
 type SpaceId = "tavern" | "cafe" | "journal" | "wheel";
 
