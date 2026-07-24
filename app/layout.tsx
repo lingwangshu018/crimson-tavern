@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { OpeningScene } from "./OpeningScene";
 import { TavernLife } from "./TavernLife";
+import { CloudCellar } from "./CloudCellar";
 
 export const metadata: Metadata = {
   title: "绯夜酒馆",
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body>
         <OpeningScene />
         <TavernLife />
+        <CloudCellar />
         {children}
       </body>
     </html>
