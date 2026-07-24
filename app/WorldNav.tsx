@@ -1,28 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { WorldMap } from "./WorldMap";
 import { WorldRoomOutlet } from "./WorldRoomOutlet";
 import { roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
 import "./world-nav.css";
 
 export function WorldNav() {
   const [open, setOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [active, setActive] = useState<RoomId>("tavern");
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      if (mapOpen) setMapOpen(false);
+      else setOpen(false);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [mapOpen]);
 
   useEffect(() => {
     const cloudWords = /保存到\s*cloud|save\s*to\s*cloud|cloud\s*save|云端存档|保存到云端/i;
     function liftOriginalCloudControl() {
       const candidates = Array.from(document.querySelectorAll<HTMLElement>("button, a, [role='button']"));
       for (const candidate of candidates) {
-        if (candidate.closest(".ai-vault, .journal-mailbox, .vault-actions, .world-drawer")) continue;
+        if (candidate.closest(".ai-vault, .journal-mailbox, .vault-actions, .world-drawer, .world-map-shell")) continue;
         const label = [candidate.getAttribute("aria-label") || "", candidate.getAttribute("title") || "", candidate.getAttribute("data-testid") || "", candidate.textContent || ""].join(" ");
         if (!cloudWords.test(label)) continue;
         let floating: HTMLElement = candidate;
@@ -47,6 +51,7 @@ export function WorldNav() {
   function selectSpace(space: RoomDefinition) {
     setActive(space.id);
     setOpen(false);
+    setMapOpen(false);
     if (space.id === "tavern") {
       window.setTimeout(() => document.querySelector("#bar")?.scrollIntoView({ behavior: "smooth" }), 0);
     }
@@ -65,6 +70,9 @@ export function WorldNav() {
           <button type="button" aria-label="关闭侧边栏" onClick={() => setOpen(false)}>×</button>
         </header>
         <p className="world-drawer-intro">一扇门通往不同房间，而所有故事共享同一段记忆。</p>
+        <button className="world-map-entry" type="button" onClick={() => { setOpen(false); setMapOpen(true); }}>
+          <span>界</span><strong>展开绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
+        </button>
         <nav className="world-space-list" aria-label="绯界房间">
           {roomRegistry.map((space, index) => (
             <button className={active === space.id ? "is-active" : ""} type="button" key={space.id} onClick={() => selectSpace(space)}>
@@ -78,6 +86,7 @@ export function WorldNav() {
         <footer><span>PRIVATE DIGITAL WORLD</span><span>EST. 2026</span></footer>
       </aside>
 
+      <WorldMap open={mapOpen} active={active} onClose={() => setMapOpen(false)} onSelect={selectSpace} />
       <WorldRoomOutlet active={active} onClose={returnToTavern} />
     </>
   );
