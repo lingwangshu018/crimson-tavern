@@ -9,7 +9,14 @@ const AGE_CONFIRMED_KEY = "crimson-tavern.age-confirmed.v1";
 const GUEST_NAME_KEY = "crimson-tavern.guest-name.v1";
 
 type OpeningMode = "always" | "first" | "off";
-type ScenePhase = "loading" | "permit" | "stamping" | "opening" | "hidden";
+type ScenePhase =
+  | "boot"
+  | "permit"
+  | "stamping"
+  | "welcome"
+  | "opening"
+  | "closed"
+  | "hidden";
 
 function readMode(): OpeningMode {
   try {
@@ -20,49 +27,72 @@ function readMode(): OpeningMode {
   }
 }
 
-function shouldShowOpening() {
-  const mode = readMode();
-  let seen = false;
+function readStoredValue(key: string) {
   try {
-    seen = window.localStorage.getItem(OPENING_SEEN_KEY) === "1";
-  } catch {}
+    return window.localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeStoredValue(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // The ritual still works when storage is unavailable; it simply repeats later.
+  }
+}
+
+function shouldShowReturningOpening() {
+  const mode = readMode();
+  const seen = readStoredValue(OPENING_SEEN_KEY) === "1";
   return mode === "always" || (mode === "first" && !seen);
 }
 
 export function OpeningScene() {
-  const [phase, setPhase] = useState<ScenePhase>("loading");
-  const [leaving, setLeaving] = useState(false);
+  const [phase, setPhase] = useState<ScenePhase>("boot");
   const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [error, setError] = useState("");
-  const completedRef = useRef(false);
+  const [leaving, setLeaving] = useState(false);
+  const timersRef = useRef<number[]>([]);
+
+  function schedule(callback: () => void, delay: number) {
+    const timer = window.setTimeout(callback, delay);
+    timersRef.current.push(timer);
+  }
 
   useEffect(() => {
-    let admitted = false;
-    try {
-      admitted = window.localStorage.getItem(AGE_CONFIRMED_KEY) === "1";
-      setGuestName(window.localStorage.getItem(GUEST_NAME_KEY) ?? "");
-    } catch {}
+    const admitted = readStoredValue(AGE_CONFIRMED_KEY) === "1";
+    const savedName = readStoredValue(GUEST_NAME_KEY);
+    setGuestName(savedName);
 
     if (!admitted) {
       setPhase("permit");
       return;
     }
 
-    setPhase(shouldShowOpening() ? "opening" : "hidden");
+    if (shouldShowReturningOpening()) {
+      writeStoredValue(OPENING_SEEN_KEY, "1");
+      setPhase("opening");
+    } else {
+      setPhase("hidden");
+    }
+
+    return () => {
+      timersRef.current.forEach((timer) => window.clearTimeout(timer));
+      timersRef.current = [];
+    };
   }, []);
 
   useEffect(() => {
     if (phase !== "opening") return;
-    try {
-      window.localStorage.setItem(OPENING_SEEN_KEY, "1");
-    } catch {}
-    const timer = window.setTimeout(close, 4400);
-    return () => window.clearTimeout(timer);
+    schedule(closeOpening, 5200);
   }, [phase]);
 
   function admit() {
     const name = guestName.trim();
+
     if (!adultConfirmed) {
       setError("请先确认你已年满十八周岁，并理解入馆边界。");
       return;
@@ -76,73 +106,108 @@ export function OpeningScene() {
       return;
     }
 
-    try {
-      window.localStorage.setItem(AGE_CONFIRMED_KEY, "1");
-      window.localStorage.setItem(GUEST_NAME_KEY, name);
-    } catch {}
+    setGuestName(name);
     setError("");
+    writeStoredValue(AGE_CONFIRMED_KEY, "1");
+    writeStoredValue(GUEST_NAME_KEY, name);
+    writeStoredValue(OPENING_SEEN_KEY, "1");
+
     setPhase("stamping");
-    window.setTimeout(() => {
-      setPhase(shouldShowOpening() ? "opening" : "hidden");
-    }, 1650);
+    schedule(() => setPhase("welcome"), 1200);
+    schedule(() => setPhase("opening"), 2450);
   }
 
-  function leaveTavern() {
-    if (window.history.length > 1) window.history.back();
-    else window.location.replace("about:blank");
-  }
-
-  function close() {
-    if (completedRef.current) return;
-    completedRef.current = true;
+  function closeOpening() {
     setLeaving(true);
-    window.setTimeout(() => setPhase("hidden"), 850);
+    schedule(() => setPhase("hidden"), 760);
   }
 
-  if (phase === "loading" || phase === "hidden") return null;
+  function reopenPermit() {
+    setAdultConfirmed(false);
+    setError("");
+    setPhase("permit");
+  }
 
-  if (phase === "permit" || phase === "stamping") {
+  if (phase === "boot" || phase === "hidden") return null;
+
+  if (phase === "closed") {
+    return (
+      <div className="tavern-closed-scene" role="dialog" aria-modal="true" aria-label="酒馆暂未入内">
+        <div className="closed-card">
+          <span aria-hidden="true">☾</span>
+          <h1>木门轻轻合上</h1>
+          <p>酒馆会一直亮着灯。准备好以后，再回来签下名字。</p>
+          <button type="button" onClick={reopenPermit}>返回门前</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "permit" || phase === "stamping" || phase === "welcome") {
     return (
       <div className="admission-scene" role="dialog" aria-modal="true" aria-labelledby="admission-title">
         <div className="admission-ambience" aria-hidden="true" />
-        <article className={`admission-parchment ${phase === "stamping" ? "is-stamping" : ""}`}>
+        <article className={`admission-parchment phase-${phase}`}>
           <div className="parchment-corner corner-a" aria-hidden="true" />
           <div className="parchment-corner corner-b" aria-hidden="true" />
           <p className="admission-kicker">CRIMSON TAVERN · ADMISSION LICENSE</p>
           <div className="admission-emblem" aria-hidden="true">绯</div>
           <h1 id="admission-title">绯夜酒馆入馆许可</h1>
-          <p className="admission-welcome">欢迎来到绯夜酒馆。在推开这扇门之前，请先阅读并签署这份入馆许可。</p>
 
-          <section className="admission-rules" aria-label="入馆须知">
-            <h2>入馆须知</h2>
-            <p>本酒馆仅接待<strong>已满十八周岁</strong>的客人。店内酒饮、酒签与故事，仅围绕<strong>明确成年的虚构人物</strong>展开。</p>
-            <p>请勿用于未成年人、现实人物、动物、非自愿或违法内容。请以自愿、知情与安全为前提。</p>
-          </section>
+          {phase === "welcome" ? (
+            <div className="admission-welcome-stage" aria-live="polite">
+              <p>登记完成</p>
+              <strong>欢迎入馆，{guestName}。</strong>
+              <small>门铃已经为你响起。</small>
+            </div>
+          ) : (
+            <>
+              <p className="admission-welcome">欢迎来到绯夜酒馆。在推开这扇门之前，请先阅读并签署这份入馆许可。</p>
 
-          <label className="admission-check">
-            <input type="checkbox" checked={adultConfirmed} onChange={(event) => setAdultConfirmed(event.target.checked)} />
-            <span>我确认已年满十八周岁，并理解且同意遵守上述内容边界。</span>
-          </label>
+              <section className="admission-rules" aria-label="入馆须知">
+                <h2>入馆须知</h2>
+                <p>本酒馆仅接待<strong>已满十八周岁</strong>的客人。店内酒饮、酒签与故事，仅围绕<strong>明确成年的虚构人物</strong>展开。</p>
+                <p>请勿用于未成年人、现实人物、动物、非自愿或违法内容。请以自愿、知情与安全为前提。</p>
+              </section>
 
-          <label className="guest-signature">
-            <span>请在登记簿上留下你的名字</span>
-            <input
-              type="text"
-              value={guestName}
-              maxLength={24}
-              autoComplete="nickname"
-              placeholder="酒保该如何称呼你？"
-              onChange={(event) => setGuestName(event.target.value)}
-              onKeyDown={(event) => { if (event.key === "Enter") admit(); }}
-            />
-          </label>
+              <label className="admission-check">
+                <input
+                  type="checkbox"
+                  checked={adultConfirmed}
+                  disabled={phase === "stamping"}
+                  onChange={(event) => setAdultConfirmed(event.target.checked)}
+                />
+                <span>我确认已年满十八周岁，并理解且同意遵守上述内容边界。</span>
+              </label>
 
-          {error ? <p className="admission-error" role="alert">{error}</p> : null}
+              <label className="guest-signature">
+                <span>请在登记簿上留下你的名字</span>
+                <input
+                  type="text"
+                  value={guestName}
+                  maxLength={24}
+                  disabled={phase === "stamping"}
+                  autoComplete="nickname"
+                  placeholder="酒保该如何称呼你？"
+                  onChange={(event) => setGuestName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && phase === "permit") admit();
+                  }}
+                />
+              </label>
 
-          <div className="admission-actions">
-            <button className="sign-button" type="button" onClick={admit}>✒ 在登记簿上签名</button>
-            <button className="leave-button" type="button" onClick={leaveTavern}>改日再来</button>
-          </div>
+              {error ? <p className="admission-error" role="alert">{error}</p> : null}
+
+              <div className="admission-actions">
+                <button className="sign-button" type="button" disabled={phase === "stamping"} onClick={admit}>
+                  {phase === "stamping" ? "正在盖章……" : "✒ 在登记簿上签名"}
+                </button>
+                <button className="leave-button" type="button" disabled={phase === "stamping"} onClick={() => setPhase("closed")}>
+                  改日再来
+                </button>
+              </div>
+            </>
+          )}
 
           <p className="admission-motto">酒馆不会询问你的来处，只会替你留一盏灯。</p>
           <div className="wax-seal" aria-hidden="true"><span>CT</span><small>ADMITTED</small></div>
@@ -160,7 +225,7 @@ export function OpeningScene() {
         <p>THE CRIMSON TAVERN</p>
         <h1>绯夜酒馆</h1>
         <span>{guestName ? `欢迎回来，${guestName}。今夜的位置已经替你留好。` : "门铃轻响，今夜的酒单已经为你翻开。"}</span>
-        <button type="button" onClick={close}>推门而入</button>
+        <button type="button" onClick={closeOpening}>推门而入</button>
       </div>
     </div>
   );
@@ -168,14 +233,19 @@ export function OpeningScene() {
 
 export function OpeningPreferenceControl() {
   const [mode, setMode] = useState<OpeningMode>("first");
+
   useEffect(() => setMode(readMode()), []);
+
   function save(value: OpeningMode) {
     setMode(value);
-    try {
-      window.localStorage.setItem(OPENING_MODE_KEY, value);
-      if (value === "always") window.localStorage.removeItem(OPENING_SEEN_KEY);
-    } catch {}
+    writeStoredValue(OPENING_MODE_KEY, value);
+    if (value === "always") {
+      try {
+        window.localStorage.removeItem(OPENING_SEEN_KEY);
+      } catch {}
+    }
   }
+
   return (
     <div className="opening-preference-control">
       <strong>开屏动画</strong>
