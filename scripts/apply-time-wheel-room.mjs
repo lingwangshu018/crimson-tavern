@@ -2,19 +2,38 @@ import fs from "node:fs";
 
 const navPath = new URL("../app/WorldNav.tsx", import.meta.url);
 let nav = fs.readFileSync(navPath, "utf8");
+let changed = false;
 
-if (!nav.includes('import { TimeWheelRoom } from "./TimeWheelRoom";')) {
-  const target = 'import { JournalRoom } from "./JournalRoom";';
-  if (!nav.includes(target)) throw new Error("Time wheel import target not found");
-  nav = nav.replace(target, `${target}\nimport { TimeWheelRoom } from "./TimeWheelRoom";`);
+const importLine = 'import { TimeWheelRoom } from "./TimeWheelRoom";';
+if (!nav.includes(importLine)) {
+  const journalImport = 'import { JournalRoom } from "./JournalRoom";';
+  if (!nav.includes(journalImport)) {
+    console.warn("Skipped Time Wheel import: JournalRoom import anchor was not found.");
+  } else {
+    nav = nav.replace(journalImport, `${journalImport}\n${importLine}`);
+    changed = true;
+  }
 }
 
-if (!nav.includes('<TimeWheelRoom onClose={() => selectSpace(spaces[0])} />')) {
-  const target = `      {active === "journal" ? (\n        <JournalRoom onClose={() => selectSpace(spaces[0])} />\n      ) : active !== "tavern" ? (`;
-  const replacement = `      {active === "journal" ? (\n        <JournalRoom onClose={() => selectSpace(spaces[0])} />\n      ) : active === "wheel" ? (\n        <TimeWheelRoom onClose={() => selectSpace(spaces[0])} />\n      ) : active !== "tavern" ? (`;
-  if (!nav.includes(target)) throw new Error("Time wheel render target not found");
-  nav = nav.replace(target, replacement);
+const renderLine = '<TimeWheelRoom onClose={() => selectSpace(spaces[0])} />';
+if (!nav.includes(renderLine)) {
+  const journalBranch = /(\{active === "journal" \? \(\s*<JournalRoom onClose=\{\(\) => selectSpace\(spaces\[0\]\)\} \/>\s*\) : )(active !== "tavern" \? \()/m;
+  if (!journalBranch.test(nav)) {
+    console.warn("Skipped Time Wheel render integration: navigation branch anchor was not found.");
+  } else {
+    nav = nav.replace(
+      journalBranch,
+      `$1active === "wheel" ? (\n        <TimeWheelRoom onClose={() => selectSpace(spaces[0])} />\n      ) : $2`,
+    );
+    changed = true;
+  }
 }
 
-fs.writeFileSync(navPath, nav);
-console.log("Applied embedded Time Wheel room.");
+if (changed) fs.writeFileSync(navPath, nav);
+
+const complete = nav.includes(importLine) && nav.includes(renderLine);
+if (complete) {
+  console.log(changed ? "Applied embedded Time Wheel room." : "Time Wheel room already integrated; skipped.");
+} else {
+  console.warn("Time Wheel patch incomplete; existing source was left intact where anchors were unavailable.");
+}
