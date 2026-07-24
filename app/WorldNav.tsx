@@ -5,7 +5,6 @@ import { WorldMap } from "./WorldMap";
 import { WorldRoomOutlet } from "./WorldRoomOutlet";
 import { roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
 import "./world-nav.css";
-import "./world-shortcuts.css";
 
 export function WorldNav() {
   const [open, setOpen] = useState(false);
@@ -67,10 +66,7 @@ export function WorldNav() {
 
   return (
     <>
-      <div className="world-shortcuts" aria-label="绯界快捷入口">
-        <button className="world-trigger" type="button" aria-label="打开绯界导航" aria-expanded={open} onClick={() => setOpen(true)}>绯</button>
-        <button className="world-map-trigger" type="button" aria-label="打开绯界地图" aria-expanded={mapOpen} onClick={openMap}>图</button>
-      </div>
+      <button className="world-trigger" type="button" aria-label="打开绯界导航" aria-expanded={open} onClick={() => setOpen(true)}>绯</button>
 
       <button className={`world-backdrop ${open ? "is-open" : ""}`} type="button" aria-label="关闭绯界导航" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)} />
       <aside className={`world-drawer ${open ? "is-open" : ""}`} aria-hidden={!open}>
@@ -78,10 +74,10 @@ export function WorldNav() {
           <div><p>CRIMSON WORLD</p><h2>绯界</h2></div>
           <button type="button" aria-label="关闭侧边栏" onClick={() => setOpen(false)}>×</button>
         </header>
-        <p className="world-drawer-intro">一扇门通往不同房间，而所有故事共享同一段记忆。</p>
         <button className="world-map-entry" type="button" onClick={openMap}>
-          <span>界</span><strong>展开绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
+          <span>界</span><strong>绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
         </button>
+        <p className="world-drawer-intro">一扇门通往不同房间，而所有故事共享同一段记忆。</p>
         <nav className="world-space-list" aria-label="绯界房间">
           {roomRegistry.map((space, index) => (
             <button className={active === space.id ? "is-active" : ""} type="button" key={space.id} onClick={() => selectSpace(space)}>
