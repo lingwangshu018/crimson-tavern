@@ -91,7 +91,15 @@ const script = `
     if (!KEY_RE.test(read) || !KEY_RE.test(reply)) return setStatus("请先同步时光记录，生成读取和回复钥匙。");
     const target = id || prompt("输入要读取的记录 ID：") || "";
     if (!target) return;
-    const text = `请读取我的绯界时光之轮记录并回复。\n指定记录 ID：${target}\n读取钥匙：${read}\n回复钥匙：${reply}\n档案接口：${VAULT_API_URL}\n\n请只读取指定记录的主题与完整内容，给出一段完整回复，并使用回复钥匙把回复写入该记录的 note 字段。不要修改原始内容。`;
+    const text = [
+      "请读取我的绯界时光之轮记录并回复。",
+      "指定记录 ID：" + target,
+      "读取钥匙：" + read,
+      "回复钥匙：" + reply,
+      "档案接口：" + VAULT_API_URL,
+      "",
+      "请只读取指定记录的主题与完整内容，给出一段完整回复，并使用回复钥匙把回复写入该记录的 note 字段。不要修改原始内容。"
+    ].join("\\n");
     try { await navigator.clipboard.writeText(text); setStatus("指定记录的读取与回复指令已复制。"); }
     catch { prompt("复制这段指令：", text); }
   }
@@ -146,7 +154,7 @@ const script = `
     if (!content || content.querySelector(".tm-ai-panel")) return;
     const panel = document.createElement("section");
     panel.className = "tm-ai-panel";
-    panel.innerHTML = `<h3>AI 时光信箱</h3><p class="tm-ai-detail">尚未同步到 AI 档案</p><div class="tm-ai-actions"><button data-action="sync">🔄 同步历史</button><button data-action="read">🗝 读取与回复</button><button data-action="pull">📥 收取回复</button><button data-action="locate-last">⌖ 定位最新</button></div><div class="tm-ai-locate"><input placeholder="输入记录 ID 定位"><button>定位</button></div><p class="tm-ai-status"></p>`;
+    panel.innerHTML = '<h3>AI 时光信箱</h3><p class="tm-ai-detail">尚未同步到 AI 档案</p><div class="tm-ai-actions"><button data-action="sync">🔄 同步历史</button><button data-action="read">🗝 读取与回复</button><button data-action="pull">📥 收取回复</button><button data-action="locate-last">⌖ 定位最新</button></div><div class="tm-ai-locate"><input placeholder="输入记录 ID 定位"><button>定位</button></div><p class="tm-ai-status"></p>';
     panel.querySelector('[data-action="sync"]').onclick = syncHistory;
     panel.querySelector('[data-action="read"]').onclick = () => copyReadInstruction("");
     panel.querySelector('[data-action="pull"]').onclick = pullReplies;
@@ -165,7 +173,7 @@ const script = `
     cards.forEach((card, index) => {
       const item = history[index]; if (!item || card.querySelector(".tm-history-tools")) return;
       const tools = document.createElement("div"); tools.className = "tm-history-tools";
-      tools.innerHTML = `<span class="tm-history-id">ID ${shortId(item.id)}${item.ai_reply ? '<span class="tm-reply-badge">· 已回复</span>' : ''}</span><button data-read>读取</button><button data-locate>定位</button>`;
+      tools.innerHTML = '<span class="tm-history-id">ID ' + shortId(item.id) + (item.ai_reply ? '<span class="tm-reply-badge">· 已回复</span>' : '') + '</span><button data-read>读取</button><button data-locate>定位</button>';
       tools.querySelector("[data-read]").onclick = event => { event.stopPropagation(); copyReadInstruction(item.id); };
       tools.querySelector("[data-locate]").onclick = event => { event.stopPropagation(); locateRecord(item.id); };
       card.appendChild(tools);
