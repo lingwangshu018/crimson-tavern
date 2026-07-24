@@ -12,15 +12,16 @@
   background-attachment: fixed;
 }
 
-/* These were temporary experimental layers. Keep them out of the rendered scene. */
-.tavern-background-art,
-.tavern-bartender-art {
+/* Keep the experimental page-background layer hidden. */
+.tavern-background-art {
   display: none !important;
 }
 
-/* Restore the original tavern scene, including its CSS bartender and shelves. */
+/* Restore the original tavern stage. */
 .tavern-scene {
+  position: relative;
   min-height: 298px !important;
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(91, 29, 39, 0.16), rgba(5, 2, 3, 0.72)),
     repeating-linear-gradient(
@@ -32,13 +33,42 @@
   backdrop-filter: initial !important;
 }
 
+/* Replace the original CSS-drawn bartender with the repository image. */
+.tavern-scene > .bartender-figure {
+  display: none !important;
+}
+
+.tavern-bartender-art {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 34px;
+  display: block !important;
+  width: min(72%, 420px);
+  height: 88%;
+  object-fit: cover;
+  object-position: center 18%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  user-select: none;
+  filter: brightness(1.04) contrast(1.03) drop-shadow(0 14px 24px rgba(0, 0, 0, 0.48));
+  -webkit-mask-image: linear-gradient(to bottom, #000 0 76%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0 76%, transparent 100%);
+}
+
+/* Keep the original scenery and counter around the new bartender. */
 .tavern-scene > .lamp,
 .tavern-scene > .bottles,
-.tavern-scene > .shelf,
-.tavern-scene > .bartender-figure,
+.tavern-scene > .shelf {
+  display: block !important;
+  z-index: 1;
+}
+
 .tavern-scene > .bar-counter,
 .tavern-scene > .bar-plaque {
   display: block !important;
+  position: absolute;
+  z-index: 4;
 }
 
 /* Library room background. */
@@ -70,6 +100,13 @@
   .site-shell {
     background-position: 50% top;
     background-attachment: scroll;
+  }
+
+  .tavern-bartender-art {
+    bottom: 36px;
+    width: 82%;
+    height: 86%;
+    object-position: center 16%;
   }
 
   .journal-room {
