@@ -1,17 +1,32 @@
 /* Static artwork supplied for the currently implemented Crimson World rooms. */
 
-.tavern-scene {
-  min-height: clamp(320px, 43vw, 520px) !important;
+.site-shell {
+  min-height: 100vh;
   background-color: #12080b !important;
   background-image:
-    linear-gradient(180deg, rgba(8, 3, 5, 0.04), rgba(8, 3, 5, 0.26)),
-    url("/assets/bartender-bg.webp") !important;
+    linear-gradient(rgba(8, 3, 5, 0.24), rgba(8, 3, 5, 0.56)),
+    url("./bartender-bg.webp") !important;
   background-size: cover !important;
-  background-position: center 42% !important;
+  background-position: center top !important;
   background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 
-/* The supplied bartender artwork replaces the old CSS-drawn scene. */
+/* Keep the main bar content readable over the supplied bartender artwork. */
+.topbar,
+.bar-layout,
+.archive-section,
+.site-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.tavern-scene {
+  min-height: clamp(320px, 43vw, 520px) !important;
+  background: rgba(12, 5, 8, 0.28) !important;
+  backdrop-filter: blur(2px);
+}
+
 .tavern-scene > .lamp,
 .tavern-scene > .bottles,
 .tavern-scene > .shelf,
@@ -22,8 +37,8 @@
 .journal-room {
   background-color: #100908 !important;
   background-image:
-    linear-gradient(rgba(9, 5, 5, 0.30), rgba(9, 5, 5, 0.56)),
-    url("/assets/library-bg.webp") !important;
+    linear-gradient(rgba(9, 5, 5, 0.30), rgba(9, 5, 5, 0.60)),
+    url("./library-bg.webp") !important;
   background-size: cover !important;
   background-position: center center !important;
   background-repeat: no-repeat !important;
@@ -41,9 +56,9 @@
 }
 
 @media (max-width: 720px) {
-  .tavern-scene {
-    min-height: 390px !important;
-    background-position: 54% center !important;
+  .site-shell {
+    background-position: 52% top !important;
+    background-attachment: scroll !important;
   }
 
   .journal-room {
