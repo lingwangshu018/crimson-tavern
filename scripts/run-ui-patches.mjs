@@ -21,7 +21,7 @@ const patches = [
   { file: "apply-time-wheel-room.mjs", label: "time wheel room" },
   { file: "apply-local-backup-tools.mjs", label: "journal and time wheel backups" },
   { file: "apply-unified-vault-keys.mjs", label: "shared vault API and keys" },
-  { file: "apply-cloudflare-owned-vault.mjs", label: "Cloudflare-owned vault routing" },
+  { file: "apply-cloudflare-owned-vault.mjs", label: "configurable cloud routing" },
   { file: "apply-study-room.mjs", label: "study rooms" },
 ];
 
