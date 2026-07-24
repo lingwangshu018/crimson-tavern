@@ -105,7 +105,7 @@ replace(
     localStorage.setItem(JOURNAL_OWNER_KEY, ownerKey);
     localStorage.setItem(JOURNAL_READ_KEY, readKey);
     localStorage.setItem(JOURNAL_REPLY_KEY, replyKey);
-    setMailboxBusy("sync"); setMailboxMessage("正在把这封信放进 AI 信箱……");
+    setMailboxBusy("sync"); setMailboxMessage(vaultSyncedAt ? "正在同步这篇日记的最新内容……" : "正在把这封信放进 AI 信箱……");
     try {
       const response = await fetch(VAULT_API_URL, {
         method: "PUT",
@@ -121,7 +121,7 @@ replace(
       if (!response.ok || !result.syncedAt) throw new Error(result.error || "同步失败");
       setVaultSyncedAt(result.syncedAt);
       localStorage.setItem(JOURNAL_SYNCED_KEY, result.syncedAt);
-      setMailboxMessage("信已寄出。现在可以复制 AI 读信指令。📮");
+      setMailboxMessage(vaultSyncedAt ? "日记最新内容已经同步。🔄" : "信已寄出。现在可以复制 AI 读信指令。📮");
     } catch (error) {
       setMailboxMessage(error instanceof Error ? error.message : "同步暂时没有成功");
     } finally { setMailboxBusy(null); }
@@ -165,7 +165,8 @@ replace(
             <section className="journal-mailbox">
               <header><div><b>AI 信箱</b><small>{vaultSyncedAt ? \`最近寄出 ${'${formatDate(new Date(vaultSyncedAt).getTime())}'}\` : "这封信尚未寄出"}</small></div><span>{current.reply ? "已回音" : vaultSyncedAt ? "等待回信" : "本地保存"}</span></header>
               <div className="journal-mailbox-actions">
-                <button onClick={syncCurrentDiary} disabled={Boolean(mailboxBusy)}>{mailboxBusy === "sync" ? "寄送中…" : "📮 寄给 AI"}</button>
+                <button onClick={syncCurrentDiary} disabled={Boolean(mailboxBusy)}>{mailboxBusy === "sync" ? "处理中…" : "📮 寄给 AI"}</button>
+                <button onClick={syncCurrentDiary} disabled={!vaultSyncedAt || Boolean(mailboxBusy)}>🔄 同步日记</button>
                 <button onClick={copyReplyInstruction} disabled={!vaultReadKey}>🗝 复制读信指令</button>
                 <button onClick={pullReply} disabled={Boolean(mailboxBusy)}>{mailboxBusy === "pull" ? "收信中…" : "📥 收取回信"}</button>
               </div>
