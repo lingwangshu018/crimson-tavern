@@ -19,7 +19,7 @@ replace(
 
 replace(
   '<header className="journal-header paper-head"><button onClick={() => setView("list")}>‹</button><div><strong>写给机</strong><small>NEW ENTRY</small></div><button className="done" onClick={saveDiary}>完成</button></header>',
-  '<header className="journal-header paper-head"><button className="journal-back-button" type="button" onClick={() => setView("list")} aria-label="返回日记本"><span aria-hidden="true">‹</span><em>返回</em></button><div><strong>写给机</strong><small>NEW ENTRY</small></div><button className="done" onClick={saveDiary}>完成</button></header>',
+  '<header className="journal-header paper-head"><button className="journal-plane-back" type="button" onClick={() => setView("list")} aria-label="返回日记本"><span aria-hidden="true">➤</span></button><div><strong>写给机</strong><small>NEW ENTRY</small></div><button className="done" onClick={saveDiary}>完成</button></header>',
 );
 
 replace(
@@ -29,7 +29,7 @@ replace(
 
 replace(
   '<header className="journal-reader-actions"><button onClick={() => setView("list")}>‹</button>',
-  '<header className="journal-reader-actions"><button className="journal-reader-back" type="button" onClick={() => setView("list")} aria-label="返回日记本"><span aria-hidden="true">‹</span><em>返回日记本</em></button>',
+  '<header className="journal-reader-actions"><button className="journal-plane-back journal-reader-plane-back" type="button" onClick={() => setView("list")} aria-label="返回日记本"><span aria-hidden="true">➤</span></button>',
 );
 
 fs.writeFileSync(path, source);
