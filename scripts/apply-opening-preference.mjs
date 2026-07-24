@@ -14,8 +14,8 @@ replace(
   'import "./mixing-ritual.css";\nimport { OpeningPreferenceControl } from "./OpeningScene";\n\n// CRIMSON_TAVERN_OPENING_PREFERENCE',
 );
 replace(
-  '<p className="preferences-note">设置会立即保存到当前浏览器，之后可以随时重新修改。</p>',
-  '<OpeningPreferenceControl />\n              <p className="preferences-note">设置会立即保存到当前浏览器，之后可以随时重新修改。</p>',
+  '            <p className="preferences-note">\n              修改会立即保存。以后随时点开“酒馆偏好”重新选择，不需要刷新页面。\n            </p>',
+  '            <OpeningPreferenceControl />\n\n            <p className="preferences-note">\n              修改会立即保存。以后随时点开“酒馆偏好”重新选择，不需要刷新页面。\n            </p>',
 );
 
 fs.writeFileSync(path, source);
