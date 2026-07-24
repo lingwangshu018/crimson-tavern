@@ -1,18 +1,35 @@
 /* Static artwork supplied for the currently implemented Crimson World rooms. */
 
 .site-shell {
+  position: relative;
   min-height: 100vh;
-  background-color: #12080b !important;
-  background-image:
-    linear-gradient(rgba(8, 3, 5, 0.24), rgba(8, 3, 5, 0.56)),
-    url("./bartender-bg.webp") !important;
-  background-size: cover !important;
-  background-position: center top !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+  isolation: isolate;
+  background: #12080b !important;
 }
 
-/* Keep the main bar content readable over the supplied bartender artwork. */
+.site-shell::before {
+  position: fixed;
+  z-index: -2;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(8, 3, 5, 0.22), rgba(8, 3, 5, 0.58)),
+    url("https://lingwangshu018.github.io/crimson-world/assets/bartender-bg.webp");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+.site-shell::after {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 20%, transparent 0 28%, rgba(4, 1, 2, 0.38) 78%, rgba(4, 1, 2, 0.68));
+}
+
 .topbar,
 .bar-layout,
 .archive-section,
@@ -23,8 +40,8 @@
 
 .tavern-scene {
   min-height: clamp(320px, 43vw, 520px) !important;
-  background: rgba(12, 5, 8, 0.28) !important;
-  backdrop-filter: blur(2px);
+  background: rgba(12, 5, 8, 0.18) !important;
+  backdrop-filter: blur(1px);
 }
 
 .tavern-scene > .lamp,
@@ -35,34 +52,38 @@
 }
 
 .journal-room {
-  background-color: #100908 !important;
-  background-image:
-    linear-gradient(rgba(9, 5, 5, 0.30), rgba(9, 5, 5, 0.60)),
-    url("./library-bg.webp") !important;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+  position: fixed;
+  isolation: isolate;
+  background: #100908 !important;
 }
 
 .journal-room::before {
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.30),
-    transparent 22%,
-    transparent 78%,
-    rgba(0, 0, 0, 0.30)
-  ) !important;
+  position: fixed !important;
+  z-index: -2 !important;
+  inset: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+  content: "" !important;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(9, 5, 5, 0.26), rgba(9, 5, 5, 0.62)),
+    url("https://lingwangshu018.github.io/crimson-world/assets/library-bg.webp") !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+}
+
+.journal-room::after {
+  z-index: -1 !important;
 }
 
 @media (max-width: 720px) {
-  .site-shell {
-    background-position: 52% top !important;
-    background-attachment: scroll !important;
+  .site-shell::before {
+    background-position: 52% top;
   }
 
-  .journal-room {
+  .journal-room::before {
     background-position: 48% center !important;
-    background-attachment: scroll !important;
   }
 }
