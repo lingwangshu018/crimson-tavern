@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./cafe-extra.css";
 
 export const metadata: Metadata = {
   title: "Crimson Café｜绯色咖啡馆",
