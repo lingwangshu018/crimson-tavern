@@ -9,6 +9,7 @@ const patches = [
   { file: "apply-layered-tavern-art.mjs", label: "layered tavern artwork" },
   { file: "apply-journal-ai-mailbox.mjs", label: "journal mailbox" },
   { file: "apply-journal-paper-polish.mjs", label: "journal paper theme" },
+  { file: "apply-journal-pin-favorite.mjs", label: "journal pin and favorite" },
   { file: "apply-cloud-orb-top-layer.mjs", label: "cloud orb layer" },
   { file: "apply-cloud-journal-archive.mjs", label: "cloud journal archive" },
   { file: "apply-assistive-cloud-menu.mjs", label: "cloud assistive menu" },
