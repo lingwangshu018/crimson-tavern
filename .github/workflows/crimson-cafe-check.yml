@@ -1,0 +1,64 @@
+name: Crimson Café Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, agent/crimson-cafe-mvp]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck GitHub Pages build
+        id: typecheck
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run typecheck:pages 2>&1 | tee typecheck.log
+
+      - name: Build GitHub Pages version
+        id: build
+        if: success()
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build:pages 2>&1 | tee build.log
+
+      - name: Upload verification logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crimson-cafe-check-logs
+          path: |
+            typecheck.log
+            build.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload static preview artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crimson-cafe-pages-preview
+          path: dist
+          if-no-files-found: error
+          retention-days: 7
