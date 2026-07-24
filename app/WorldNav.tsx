@@ -5,6 +5,7 @@ import { WorldMap } from "./WorldMap";
 import { WorldRoomOutlet } from "./WorldRoomOutlet";
 import { roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
 import "./world-nav.css";
+import "./gpt-mobile-nav.css";
 
 export function WorldNav() {
   const [open, setOpen] = useState(false);
@@ -20,6 +21,15 @@ export function WorldNav() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mapOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   useEffect(() => {
     const cloudWords = /保存到\s*cloud|save\s*to\s*cloud|cloud\s*save|云端存档|保存到云端/i;
@@ -66,7 +76,15 @@ export function WorldNav() {
 
   return (
     <>
-      <button className="world-trigger" type="button" aria-label="打开绯界导航" aria-expanded={open} onClick={() => setOpen(true)}>绯</button>
+      <button
+        className="world-trigger"
+        type="button"
+        aria-label="打开绯界侧边栏"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span aria-hidden="true" />
+      </button>
 
       <button className={`world-backdrop ${open ? "is-open" : ""}`} type="button" aria-label="关闭绯界导航" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)} />
       <aside className={`world-drawer ${open ? "is-open" : ""}`} aria-hidden={!open}>
@@ -77,14 +95,14 @@ export function WorldNav() {
         <button className="world-map-entry" type="button" onClick={openMap}>
           <span>界</span><strong>绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
         </button>
-        <p className="world-drawer-intro">一扇门通往不同房间，而所有故事共享同一段记忆。</p>
+        <p className="world-drawer-intro">选择一个房间，继续这一段共享记忆。</p>
         <nav className="world-space-list" aria-label="绯界房间">
           {roomRegistry.map((space, index) => (
             <button className={active === space.id ? "is-active" : ""} type="button" key={space.id} onClick={() => selectSpace(space)}>
               <span className="world-space-index">{String(index + 1).padStart(2, "0")}</span>
               <span className="world-space-icon">{space.icon}</span>
               <span className="world-space-copy"><strong>{space.name}</strong><small>{space.english}</small><em>{space.description}</em></span>
-              <span className="world-space-arrow">↗</span>
+              <span className="world-space-arrow">›</span>
             </button>
           ))}
         </nav>
