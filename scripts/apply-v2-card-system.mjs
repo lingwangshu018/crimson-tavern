@@ -14,8 +14,6 @@ function replace(before, after) {
     return;
   }
 
-  // Keep the patch resilient to formatting-only changes made by Prettier or
-  // manual edits. Match the same lines while ignoring leading indentation.
   const flexiblePattern = before
     .split("\n")
     .map((line) => `[\\t ]*${escapeRegExp(line.trimStart())}`)
@@ -28,7 +26,7 @@ function replace(before, after) {
   source = source.replace(matcher, after);
 }
 
-replace('import menuData from "./menu-data.json";', 'import menuData from "./menu-data.json";\nimport "./v2.css";\nimport { MixingRitual, TavernPreferencesButton } from "./MixingRitual";\n\n// CRIMSON_TAVERN_V2_CARD_SYSTEM');
+replace('import menuData from "./menu-data.json";', 'import menuData from "./menu-data.json";\nimport "./v2.css";\nimport { MixingRitual, TavernPreferencesButton } from "./MixingRitual";\nimport { CloudCellar } from "./CloudCellar";\n\n// CRIMSON_TAVERN_V2_CARD_SYSTEM');
 replace('  noteUpdatedAt: string | null;\n};', '  noteUpdatedAt: string | null;\n  updatedAt: string;\n  favorite: boolean;\n  pinned: boolean;\n  tags: string[];\n};');
 replace('    note: "",\n    noteUpdatedAt: null,', '    note: "",\n    noteUpdatedAt: null,\n    updatedAt: new Date().toISOString(),\n    favorite: false,\n    pinned: false,\n    tags: [],');
 replace('    noteUpdatedAt:\n      typeof candidate.noteUpdatedAt === "string"\n        ? candidate.noteUpdatedAt\n        : null,\n  };', '    noteUpdatedAt:\n      typeof candidate.noteUpdatedAt === "string"\n        ? candidate.noteUpdatedAt\n        : null,\n    updatedAt:\n      typeof candidate.updatedAt === "string" &&\n      !Number.isNaN(new Date(candidate.updatedAt).getTime())\n        ? candidate.updatedAt\n        : createdAt,\n    favorite: candidate.favorite === true,\n    pinned: candidate.pinned === true,\n    tags: Array.isArray(candidate.tags)\n      ? [...new Set(candidate.tags\n          .filter((tag): tag is string => typeof tag === "string")\n          .map((tag) => tag.trim().replace(/^#/, ""))\n          .filter(Boolean)\n          .map((tag) => tag.slice(0, 30)))].slice(0, 30)\n      : [],\n  };');
@@ -44,7 +42,7 @@ replace('       if (filter === "noted" && !record.note.trim()) return false;\n  
 replace('         record.note,\n         ...record.items.flatMap', '         record.note,\n         ...record.tags,\n         ...record.items.flatMap');
 replace('   }, [filter, query, records]);', '   }, [activeTag, filter, query, records]);');
 replace('  const notedCount = useMemo(', '  const favoriteCount = useMemo(() => records.filter((record) => record.favorite).length, [records]);\n  const pinnedCount = useMemo(() => records.filter((record) => record.pinned).length, [records]);\n  const allTags = useMemo(() => [...new Set(records.flatMap((record) => record.tags))].sort((a, b) => a.localeCompare(b, "zh-CN")), [records]);\n\n  function toggleFavorite(record: TavernRecord) {\n    const updatedAt = new Date().toISOString();\n    persistRecords(records.map((item) => item.id === record.id ? { ...item, favorite: !item.favorite, updatedAt } : item));\n    showToast(record.favorite ? "已取消收藏。" : "已加入收藏。");\n  }\n\n  function togglePinned(record: TavernRecord) {\n    const updatedAt = new Date().toISOString();\n    persistRecords(records.map((item) => item.id === record.id ? { ...item, pinned: !item.pinned, updatedAt } : item));\n    showToast(record.pinned ? "已取消置顶。" : "酒签已置顶。");\n  }\n\n  function saveTags(record: TavernRecord) {\n    const tags = [...new Set((tagDrafts[record.id] || "").split(/[,，\\n]/).map((tag) => tag.trim().replace(/^#/, "")).filter(Boolean).map((tag) => tag.slice(0, 30)))].slice(0, 30);\n    const updatedAt = new Date().toISOString();\n    persistRecords(records.map((item) => item.id === record.id ? { ...item, tags, updatedAt } : item));\n    showToast("标签已经保存。 ");\n  }\n\n  const notedCount = useMemo(');
-replace('      <div className={`toast ${toast ? "show" : ""}`} role="status">\n        {toast}\n      </div>', '      <div className={`toast ${toast ? "show" : ""}`} role="status">\n        {toast}\n      </div>\n      <MixingRitual kind={mixing} drink={pendingOrder} onComplete={finishMixingRitual} />');
+replace('      <div className={`toast ${toast ? "show" : ""}`} role="status">\n        {toast}\n      </div>', '      <div className={`toast ${toast ? "show" : ""}`} role="status">\n        {toast}\n      </div>\n      <CloudCellar />\n      <MixingRitual kind={mixing} drink={pendingOrder} onComplete={finishMixingRitual} />');
 replace('          <span className="adult-stamp">ADULT FICTION · 18+</span>', '          <TavernPreferencesButton />\n          <span className="adult-stamp">ADULT FICTION · 18+</span>');
 replace('                    ["all", "全部"],\n                    ["house", "招牌"],', '                    ["all", "全部"],\n                    ["favorite", "收藏"],\n                    ["pinned", "置顶"],\n                    ["house", "招牌"],');
 replace('             <div className="record-list">', '             {allTags.length ? (\n               <div className="tag-filter-bar">\n                 <button type="button" className={!activeTag ? "active" : ""} onClick={() => setActiveTag("")}>全部标签</button>\n                 {allTags.map((tag) => (\n                   <button type="button" key={tag} className={activeTag === tag ? "active" : ""} onClick={() => setActiveTag(activeTag === tag ? "" : tag)}>#{tag}</button>\n                 ))}\n               </div>\n             ) : null}\n\n             <div className="record-list">');
@@ -61,4 +59,4 @@ replace('                   <dt>已有手记</dt>', '                   <dt>🏷
 replace('<dd>{notedCount}</dd>', '<dd>{allTags.length} / {notedCount}</dd>');
 
 fs.writeFileSync(path, source);
-console.log("Applied Crimson Tavern V2 card system and mixing ritual patch.");
+console.log("Applied Crimson Tavern V2 card system, mixing ritual, and cloud archive patch.");
