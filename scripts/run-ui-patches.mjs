@@ -14,6 +14,7 @@ const patches = [
   { file: "apply-cloud-orb-top-layer.mjs", label: "cloud orb layer" },
   { file: "apply-cloud-journal-archive.mjs", label: "cloud journal archive" },
   { file: "apply-unified-cloud-archive.mjs", label: "unified cloud archive" },
+  { file: "apply-cloud-control-center-upgrade.mjs", label: "cloud control center v2" },
   { file: "apply-assistive-cloud-menu.mjs", label: "cloud assistive menu" },
   // This is a compatibility polish. A changed selector must not block every room build.
   { file: "apply-static-world-trigger.mjs", label: "static world trigger", optional: true },
