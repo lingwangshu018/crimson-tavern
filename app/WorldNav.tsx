@@ -5,6 +5,7 @@ import { WorldMap } from "./WorldMap";
 import { WorldRoomOutlet } from "./WorldRoomOutlet";
 import { roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
 import "./world-nav.css";
+import "./world-shortcuts.css";
 
 export function WorldNav() {
   const [open, setOpen] = useState(false);
