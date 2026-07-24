@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { JournalRoom } from "./JournalRoom";
-import { TimeWheelRoom } from "./TimeWheelRoom";
-import { StudyRoom } from "./StudyRoom";
-import { getRoom, roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
+import { WorldRoomOutlet } from "./WorldRoomOutlet";
+import { roomRegistry, type RoomDefinition, type RoomId } from "./room-registry";
 import "./world-nav.css";
 
 export function WorldNav() {
@@ -54,8 +52,8 @@ export function WorldNav() {
     }
   }
 
-  const activeSpace = getRoom(active);
   const tavern = roomRegistry[0];
+  const returnToTavern = () => selectSpace(tavern);
 
   return (
     <>
@@ -80,22 +78,7 @@ export function WorldNav() {
         <footer><span>PRIVATE DIGITAL WORLD</span><span>EST. 2026</span></footer>
       </aside>
 
-      {active === "journal" ? (
-        <JournalRoom onClose={() => selectSpace(tavern)} />
-      ) : active === "wheel" ? (
-        <TimeWheelRoom onClose={() => selectSpace(tavern)} />
-      ) : active === "study" ? (
-        <StudyRoom onClose={() => selectSpace(tavern)} />
-      ) : active !== "tavern" ? (
-        <section className={`world-room-preview room-${active}`} aria-live="polite">
-          <div className="world-room-card">
-            <span className="world-room-seal">{activeSpace.icon}</span><p>{activeSpace.english}</p><h1>{activeSpace.name}</h1>
-            <div className="world-room-rule" /><p className="world-room-description">{activeSpace.description}</p>
-            <span className="world-room-status">房间正在布置中</span>
-            <button type="button" onClick={() => selectSpace(tavern)}>返回绯夜酒馆</button>
-          </div>
-        </section>
-      ) : null}
+      <WorldRoomOutlet active={active} onClose={returnToTavern} />
     </>
   );
 }
