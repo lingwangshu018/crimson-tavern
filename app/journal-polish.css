@@ -1,0 +1,20 @@
+.journal-header.paper-head{grid-template-columns:minmax(78px,auto) 1fr minmax(78px,auto)}
+.journal-back-button{display:inline-flex!important;align-items:center;justify-content:flex-start;gap:5px;width:max-content;min-width:74px;padding:7px 10px!important;border:1px solid rgba(194,163,133,.35)!important;border-radius:999px!important;background:rgba(255,255,255,.78)!important;box-shadow:0 4px 14px rgba(139,111,78,.08)}
+.journal-back-button span{font-size:24px;line-height:1}
+.journal-back-button em{font-style:normal;font-size:13px;font-weight:700;letter-spacing:.08em}
+.paper-tools{align-items:flex-end;flex-wrap:wrap}
+.paper-tools .paper-choice{display:flex;width:54px;height:58px;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;border:1px solid rgba(194,163,133,.26);border-radius:12px;background:rgba(255,255,255,.62);color:#8b6f4e}
+.paper-tools .paper-choice>span{display:block;width:32px;height:28px;border:1px solid rgba(139,111,78,.2);border-radius:5px;overflow:hidden}
+.paper-tools .paper-choice small{font-size:10px;line-height:1}
+.paper-tools .paper-choice-default>span{background:repeating-linear-gradient(transparent 0 6px,#e8dccc 6px 7px),#fdfaf6}
+.paper-tools .paper-choice-grid>span{background-image:linear-gradient(#e8dccc 1px,transparent 1px),linear-gradient(90deg,#e8dccc 1px,transparent 1px);background-color:#faf7f2;background-size:7px 7px}
+.paper-tools .paper-choice-blank>span{background:#fff}
+.paper-tools .paper-choice-night>span{background:repeating-linear-gradient(transparent 0 6px,rgba(255,255,255,.16) 6px 7px),#2c2420}
+.paper-tools .paper-choice.active{border-color:#b99571;box-shadow:0 0 0 2px rgba(194,163,133,.18);transform:translateY(-1px)}
+.paper-grid .journal-editor textarea,.paper-blank .journal-editor textarea,.paper-custom .journal-editor textarea{background:transparent}
+.paper-grid .journal-read-content,.paper-blank .journal-read-content,.paper-custom .journal-read-content{background:transparent}
+.journal-reader-actions{position:sticky;top:0;z-index:8;padding-top:12px;padding-bottom:12px}
+.journal-reader-back{display:inline-flex!important;width:auto!important;min-width:112px!important;align-items:center;justify-content:center;gap:5px;padding:0 14px!important;border-radius:999px!important}
+.journal-reader-back span{font-size:24px;line-height:1}
+.journal-reader-back em{font-style:normal;font-size:12px;font-weight:700}
+@media(max-width:600px){.journal-header.paper-head{grid-template-columns:78px 1fr 58px}.journal-back-button{min-width:68px;padding:6px 8px!important}.journal-back-button em{font-size:12px}.paper-tools{flex-wrap:nowrap;align-items:center}.paper-tools .paper-choice{flex:none;width:48px;height:54px}.paper-tools .paper-choice>span{width:28px;height:24px}.journal-reader-back{min-width:102px!important;padding:0 11px!important}}
