@@ -6,6 +6,7 @@ const patches = [
   { file: "apply-opening-scene.mjs", label: "opening scene" },
   { file: "apply-opening-preference.mjs", label: "opening preference" },
   { file: "apply-world-nav.mjs", label: "world navigation" },
+  { file: "apply-layered-tavern-art.mjs", label: "layered tavern artwork" },
   { file: "apply-journal-ai-mailbox.mjs", label: "journal mailbox" },
   { file: "apply-journal-paper-polish.mjs", label: "journal paper theme" },
   { file: "apply-cloud-orb-top-layer.mjs", label: "cloud orb layer" },
