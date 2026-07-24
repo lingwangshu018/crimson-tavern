@@ -16,6 +16,13 @@
   font-size: 20px;
 }
 
+/* The host-provided “save to Cloud” control is the one and only cloud FAB. */
+[data-crimson-cloud-floating="true"] {
+  z-index: 2147483646 !important;
+  pointer-events: auto !important;
+  isolation: isolate;
+}
+
 .world-backdrop {
   position: fixed;
   z-index: 40;
