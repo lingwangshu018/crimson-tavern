@@ -85,11 +85,6 @@ export function OpeningScene() {
     };
   }, []);
 
-  useEffect(() => {
-    if (phase !== "opening") return;
-    schedule(closeOpening, 5200);
-  }, [phase]);
-
   function admit() {
     const name = guestName.trim();
 
