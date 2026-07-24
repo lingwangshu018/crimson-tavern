@@ -15,6 +15,7 @@ const patches = [
   { file: "apply-assistive-cloud-menu.mjs", label: "cloud assistive menu" },
   // This is a compatibility polish. A changed selector must not block every room build.
   { file: "apply-static-world-trigger.mjs", label: "static world trigger", optional: true },
+  { file: "apply-time-wheel-ai-tools.mjs", label: "time wheel AI read reply and locate" },
   { file: "apply-time-wheel-room.mjs", label: "time wheel room" },
   { file: "apply-study-room.mjs", label: "study rooms" },
 ];
