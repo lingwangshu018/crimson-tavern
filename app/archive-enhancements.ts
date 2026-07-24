@@ -16,23 +16,28 @@ function writeMeta(meta: DiaryMeta) {
 }
 
 function getRecordKey(card: HTMLElement) {
-  const title = card.querySelector<HTMLElement>(".record-main > strong")?.textContent?.trim() || "";
-  const detail = card.querySelector<HTMLElement>(".record-main > small")?.textContent?.trim() || "";
+  const title =
+    card.querySelector<HTMLElement>(".record-main > strong")?.textContent?.trim() || "";
+  const detail =
+    card.querySelector<HTMLElement>(".record-main > small")?.textContent?.trim() || "";
   return `${title}__${detail}`;
 }
 
 function updateSummary(meta: DiaryMeta, cards: HTMLElement[]) {
-  const summaryRows = document.querySelectorAll<HTMLElement>(".ledger-summary dl > div");
+  const summaryRows =
+    document.querySelectorAll<HTMLElement>(".ledger-summary dl > div");
   if (summaryRows.length < 3) return;
 
   const keys = cards.map(getRecordKey);
   const pinnedCount = keys.filter((key) => meta[key]?.pinned).length;
   const favoriteCount = keys.filter((key) => meta[key]?.favorite).length;
-  const notedCount = cards.filter((card) => card.textContent?.includes("已写手记")).length;
+  const notedCount = cards.filter((card) =>
+    card.textContent?.includes("已写手记"),
+  ).length;
 
   const labels = [
-    ["📌 置顶", String(pinnedCount)],
-    ["★ 收藏", String(favoriteCount)],
+    ["📌 置顶日记", String(pinnedCount)],
+    ["★ 收藏日记", String(favoriteCount)],
     ["🏷 标签 / 手记", `${notedCount} / ${cards.length}`],
   ];
 
@@ -44,14 +49,16 @@ function updateSummary(meta: DiaryMeta, cards: HTMLElement[]) {
   });
 }
 
-function decorateCard(card: HTMLElement, meta: DiaryMeta) {
+function createDiaryActions(card: HTMLElement, meta: DiaryMeta) {
+  const notebookHead = card.querySelector<HTMLElement>(".notebook-head");
+  if (!notebookHead || notebookHead.querySelector(".diary-meta-actions")) return;
+
   const key = getRecordKey(card);
-  if (!key || card.dataset.diaryEnhanced === "true") return;
-  card.dataset.diaryEnhanced = "true";
-  card.dataset.diaryKey = key;
+  if (!key) return;
 
   const actions = document.createElement("div");
   actions.className = "diary-meta-actions";
+  actions.setAttribute("aria-label", "日记管理");
 
   const pin = document.createElement("button");
   pin.type = "button";
@@ -67,13 +74,14 @@ function decorateCard(card: HTMLElement, meta: DiaryMeta) {
     const state = meta[key] || {};
     pin.classList.toggle("active", Boolean(state.pinned));
     favorite.classList.toggle("active", Boolean(state.favorite));
-    pin.textContent = state.pinned ? "📌 已置顶" : "📌 置顶";
-    favorite.textContent = state.favorite ? "★ 已收藏" : "☆ 收藏";
-    card.classList.toggle("is-pinned", Boolean(state.pinned));
-    card.classList.toggle("is-favorite", Boolean(state.favorite));
+    pin.textContent = state.pinned ? "📌 已置顶" : "📌 置顶日记";
+    favorite.textContent = state.favorite ? "★ 已收藏" : "☆ 收藏日记";
+    card.classList.toggle("is-diary-pinned", Boolean(state.pinned));
+    card.classList.toggle("is-diary-favorite", Boolean(state.favorite));
   };
 
   pin.addEventListener("click", (event) => {
+    event.preventDefault();
     event.stopPropagation();
     meta[key] = { ...meta[key], pinned: !meta[key]?.pinned };
     writeMeta(meta);
@@ -82,6 +90,7 @@ function decorateCard(card: HTMLElement, meta: DiaryMeta) {
   });
 
   favorite.addEventListener("click", (event) => {
+    event.preventDefault();
     event.stopPropagation();
     meta[key] = { ...meta[key], favorite: !meta[key]?.favorite };
     writeMeta(meta);
@@ -90,8 +99,7 @@ function decorateCard(card: HTMLElement, meta: DiaryMeta) {
   });
 
   actions.append(pin, favorite);
-  const summary = card.querySelector(".record-summary");
-  summary?.insertAdjacentElement("afterend", actions);
+  notebookHead.appendChild(actions);
   refresh();
 }
 
@@ -100,26 +108,48 @@ function enhanceArchive() {
   if (!list) return;
 
   const meta = readMeta();
-  const cards = Array.from(list.querySelectorAll<HTMLElement>(":scope > .record-card"));
-  cards.forEach((card) => decorateCard(card, meta));
+  const cards = Array.from(
+    list.querySelectorAll<HTMLElement>(":scope > .record-card"),
+  );
 
-  cards
-    .sort((a, b) => {
-      const aPinned = meta[getRecordKey(a)]?.pinned ? 1 : 0;
-      const bPinned = meta[getRecordKey(b)]?.pinned ? 1 : 0;
-      return bPinned - aPinned;
-    })
-    .forEach((card) => list.appendChild(card));
+  cards.forEach((card) => {
+    const key = getRecordKey(card);
+    const state = meta[key] || {};
+    card.classList.toggle("is-diary-pinned", Boolean(state.pinned));
+    card.classList.toggle("is-diary-favorite", Boolean(state.favorite));
+    createDiaryActions(card, meta);
+  });
+
+  const sorted = [...cards].sort((a, b) => {
+    const aPinned = meta[getRecordKey(a)]?.pinned ? 1 : 0;
+    const bPinned = meta[getRecordKey(b)]?.pinned ? 1 : 0;
+    return bPinned - aPinned;
+  });
+
+  sorted.forEach((card, index) => {
+    if (list.children[index] !== card) list.appendChild(card);
+  });
 
   updateSummary(meta, cards);
 }
 
 if (typeof window !== "undefined") {
-  const observer = new MutationObserver(() => enhanceArchive());
+  let scheduled = false;
+  const scheduleEnhance = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.requestAnimationFrame(() => {
+      scheduled = false;
+      enhanceArchive();
+    });
+  };
+
+  const observer = new MutationObserver(scheduleEnhance);
   const start = () => {
     enhanceArchive();
     observer.observe(document.body, { childList: true, subtree: true });
   };
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
