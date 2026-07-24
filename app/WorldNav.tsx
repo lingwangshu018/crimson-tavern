@@ -8,6 +8,14 @@ import { roomRegistry, type RoomDefinition, type RoomId } from "./room-registry"
 import "./world-nav.css";
 import "./gpt-mobile-nav.css";
 
+const sidebarNames: Record<RoomId, string> = {
+  tavern: "酒馆",
+  cafe: "咖啡馆",
+  journal: "图书馆",
+  wheel: "时光之轮",
+  study: "自习室",
+};
+
 export function WorldNav() {
   const [open, setOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -94,15 +102,28 @@ export function WorldNav() {
           <button type="button" aria-label="关闭侧边栏" onClick={() => setOpen(false)}>×</button>
         </header>
         <button className="world-map-entry" type="button" onClick={openMap}>
-          <span aria-hidden="true">⌖</span><strong>绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
+          <span aria-hidden="true">⌖</span><strong>世界地图</strong><small>WORLD ATLAS</small><em>→</em>
         </button>
         <p className="world-drawer-intro">选择一个房间，继续这一段共享记忆。</p>
         <nav className="world-space-list" aria-label="绯界房间">
           {roomRegistry.map((space, index) => (
-            <button className={active === space.id ? "is-active" : ""} type="button" key={space.id} onClick={() => selectSpace(space)}>
+            <button
+              className={active === space.id ? "is-active" : ""}
+              type="button"
+              key={space.id}
+              onClick={() => selectSpace(space)}
+              aria-current={active === space.id ? "page" : undefined}
+            >
               <span className="world-space-index">{String(index + 1).padStart(2, "0")}</span>
               <span className="world-space-icon"><RoomIcon roomId={space.id} /></span>
-              <span className="world-space-copy"><strong>{space.name}</strong><small>{space.english}</small><em>{space.description}</em></span>
+              <span className="world-space-copy">
+                <span className="world-space-title-row">
+                  <strong>{sidebarNames[space.id]}</strong>
+                  <span className={`world-space-status is-${space.status}`}>{space.status === "ready" ? "已开放" : "布置中"}</span>
+                </span>
+                <small>{space.english}</small>
+                <em>{space.description}</em>
+              </span>
               <span className="world-space-arrow">›</span>
             </button>
           ))}
