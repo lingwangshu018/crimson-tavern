@@ -1,54 +1,30 @@
 /* Static artwork supplied for the currently implemented Crimson World rooms. */
 
-.site-shell {
-  position: relative;
-  min-height: 100vh;
-  isolation: isolate;
-  background: #12080b !important;
-}
-
-.site-shell::before {
-  position: fixed;
-  z-index: -2;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(8, 3, 5, 0.22), rgba(8, 3, 5, 0.58)),
-    url("https://lingwangshu018.github.io/crimson-world/assets/bartender-bg.webp");
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
-}
-
-.site-shell::after {
-  position: fixed;
-  z-index: -1;
-  inset: 0;
-  content: "";
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 20%, transparent 0 28%, rgba(4, 1, 2, 0.38) 78%, rgba(4, 1, 2, 0.68));
-}
-
-.topbar,
-.bar-layout,
-.archive-section,
-.site-footer {
-  position: relative;
-  z-index: 1;
-}
-
+/* Keep the original tavern page background. The supplied artwork is the bartender portrait. */
 .tavern-scene {
-  min-height: clamp(320px, 43vw, 520px) !important;
-  background: rgba(12, 5, 8, 0.18) !important;
-  backdrop-filter: blur(1px);
+  min-height: clamp(420px, 58vw, 620px) !important;
+  background-color: #12080b !important;
+  background-image:
+    linear-gradient(180deg, rgba(8, 3, 5, 0.04), rgba(8, 3, 5, 0.22)),
+    url("https://lingwangshu018.github.io/crimson-world/assets/bartender-bg.webp") !important;
+  background-size: cover !important;
+  background-position: center 24% !important;
+  background-repeat: no-repeat !important;
+  backdrop-filter: none !important;
 }
 
+/* The uploaded portrait replaces the original CSS-drawn bartender. */
 .tavern-scene > .lamp,
 .tavern-scene > .bottles,
 .tavern-scene > .shelf,
 .tavern-scene > .bartender-figure {
   display: none !important;
+}
+
+/* Keep the counter and name plaque above the portrait. */
+.tavern-scene > .bar-counter,
+.tavern-scene > .bar-plaque {
+  z-index: 2;
 }
 
 .journal-room {
@@ -79,8 +55,9 @@
 }
 
 @media (max-width: 720px) {
-  .site-shell::before {
-    background-position: 52% top;
+  .tavern-scene {
+    min-height: 620px !important;
+    background-position: 50% 20% !important;
   }
 
   .journal-room::before {
