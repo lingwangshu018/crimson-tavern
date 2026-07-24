@@ -1,5 +1,6 @@
 "use client";
 
+import { RoomIcon } from "./RoomIcon";
 import { getVisibleRooms, type RoomDefinition, type RoomId } from "./room-registry";
 
 type WorldMapProps = {
@@ -8,26 +9,6 @@ type WorldMapProps = {
   onClose: () => void;
   onSelect: (room: RoomDefinition) => void;
 };
-
-function MapBuildingIcon({ room }: { room: RoomDefinition }) {
-  if (room.id !== "wheel") return <>{room.icon}</>;
-
-  return (
-    <svg
-      viewBox="0 0 48 48"
-      width="1em"
-      height="1em"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <circle cx="24" cy="24" r="16" fill="none" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="24" cy="24" r="3" fill="currentColor" />
-      <path d="M24 12v4M24 32v4M12 24h4M32 24h4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M24 24l6-7M24 24l-5 5" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M17 14.5l2 3M31 14.5l-2 3M33.5 31l-3-2M14.5 31l3-2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.8" />
-    </svg>
-  );
-}
 
 export function WorldMap({ open, active, onClose, onSelect }: WorldMapProps) {
   const rooms = getVisibleRooms();
@@ -56,7 +37,7 @@ export function WorldMap({ open, active, onClose, onSelect }: WorldMapProps) {
             onClick={() => onSelect(room)}
             aria-label={`${room.name}${room.status === "planned" ? "，布置中" : ""}`}
           >
-            <span className="world-map-building"><MapBuildingIcon room={room} /></span>
+            <span className="world-map-building"><RoomIcon roomId={room.id} /></span>
             <span className="world-map-label"><strong>{room.name}</strong><small>{room.status === "ready" ? "可进入" : "布置中"}</small></span>
           </button>
         ))}
