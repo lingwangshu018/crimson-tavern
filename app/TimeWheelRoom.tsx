@@ -19,7 +19,7 @@ export function TimeWheelRoom({ onClose }: TimeWheelRoomProps) {
 
   const base = import.meta.env.BASE_URL || "/";
   const src = `${base}time-wheel/index.html`;
-  const backgroundUrl = `${base}assets/time-wheel-static.svg`;
+  const backgroundUrl = `${base}assets/time-wheel-bg.webp`;
 
   function applyCrimsonTheme(frame: HTMLIFrameElement) {
     try {
@@ -41,7 +41,7 @@ export function TimeWheelRoom({ onClose }: TimeWheelRoomProps) {
           position: relative !important;
           overflow-x: hidden;
           background-image:
-            linear-gradient(rgba(8,4,5,.28), rgba(8,4,5,.42)),
+            linear-gradient(rgba(8,4,5,.16), rgba(8,4,5,.34)),
             url("${backgroundUrl}") !important;
           background-size: cover !important;
           background-position: center center !important;
@@ -56,14 +56,14 @@ export function TimeWheelRoom({ onClose }: TimeWheelRoomProps) {
           top: 0 !important;
           z-index: 10 !important;
           color: #f2dfbd !important;
-          background: linear-gradient(180deg, rgba(31,11,17,.96), rgba(18,7,11,.9)) !important;
+          background: linear-gradient(180deg, rgba(31,11,17,.94), rgba(18,7,11,.84)) !important;
           border-bottom: 1px solid rgba(203,168,107,.34) !important;
           backdrop-filter: blur(14px);
         }
         .card, .modal-content {
           color: #f6eadf !important;
           border: 1px solid rgba(224,190,164,.22) !important;
-          background: rgba(24,11,16,.70) !important;
+          background: rgba(24,11,16,.66) !important;
           box-shadow: 0 22px 60px rgba(0,0,0,.26) !important;
           backdrop-filter: blur(9px);
         }
@@ -74,7 +74,7 @@ export function TimeWheelRoom({ onClose }: TimeWheelRoomProps) {
         }
         @media (max-width: 700px) {
           body {
-            background-position: 58% center !important;
+            background-position: 60% center !important;
           }
         }
       `;
