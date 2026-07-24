@@ -59,10 +59,18 @@ export function WorldNav() {
 
   const tavern = roomRegistry[0];
   const returnToTavern = () => selectSpace(tavern);
+  const openMap = () => {
+    setOpen(false);
+    setMapOpen(true);
+  };
 
   return (
     <>
-      <button className="world-trigger" type="button" aria-label="打开绯界导航" aria-expanded={open} onClick={() => setOpen(true)}>绯</button>
+      <div className="world-shortcuts" aria-label="绯界快捷入口">
+        <button className="world-trigger" type="button" aria-label="打开绯界导航" aria-expanded={open} onClick={() => setOpen(true)}>绯</button>
+        <button className="world-map-trigger" type="button" aria-label="打开绯界地图" aria-expanded={mapOpen} onClick={openMap}>图</button>
+      </div>
+
       <button className={`world-backdrop ${open ? "is-open" : ""}`} type="button" aria-label="关闭绯界导航" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)} />
       <aside className={`world-drawer ${open ? "is-open" : ""}`} aria-hidden={!open}>
         <header className="world-drawer-head">
@@ -70,7 +78,7 @@ export function WorldNav() {
           <button type="button" aria-label="关闭侧边栏" onClick={() => setOpen(false)}>×</button>
         </header>
         <p className="world-drawer-intro">一扇门通往不同房间，而所有故事共享同一段记忆。</p>
-        <button className="world-map-entry" type="button" onClick={() => { setOpen(false); setMapOpen(true); }}>
+        <button className="world-map-entry" type="button" onClick={openMap}>
           <span>界</span><strong>展开绯界地图</strong><small>WORLD ATLAS</small><em>→</em>
         </button>
         <nav className="world-space-list" aria-label="绯界房间">
