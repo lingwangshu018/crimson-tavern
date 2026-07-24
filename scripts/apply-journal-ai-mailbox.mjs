@@ -15,7 +15,6 @@ replace(
 const JOURNAL_OWNER_KEY = "crimson-journal.vault-owner-key.v1";
 const JOURNAL_READ_KEY = "crimson-journal.vault-read-key.v1";
 const JOURNAL_REPLY_KEY = "crimson-journal.vault-reply-key.v1";
-const JOURNAL_SYNCED_KEY = "crimson-journal.vault-synced-at.v1";
 const VAULT_API_URL = "https://crimson-tavern.boarder-72pound.chatgpt.site/api/vault";
 const VAULT_KEY_PATTERN = /^ctv1_[A-Za-z0-9_-]{43}$/;
 
@@ -38,7 +37,17 @@ function createVaultKey() {
 }
 
 function maskedVaultKey(value: string) {
-  return value ? \`${'${value.slice(0, 11)}••••••••${value.slice(-6)}'}\` : "同步后生成";
+  return value ? \`${'${value.slice(0, 11)}••••••••${value.slice(-6)}'}\` : "发送后生成";
+}
+
+function diaryFingerprint(diary: Diary) {
+  const value = \`${'${diary.title}'}\\n${'${diary.content}'}\`;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
 }`,
 );
 
@@ -48,9 +57,9 @@ replace(
   const [vaultOwnerKey, setVaultOwnerKey] = useState("");
   const [vaultReadKey, setVaultReadKey] = useState("");
   const [vaultReplyKey, setVaultReplyKey] = useState("");
-  const [vaultSyncedAt, setVaultSyncedAt] = useState("");
-  const [mailboxBusy, setMailboxBusy] = useState<"sync" | "pull" | null>(null);
-  const [mailboxMessage, setMailboxMessage] = useState("");`,
+  const [mailboxBusy, setMailboxBusy] = useState<"send" | "pull" | null>(null);
+  const [mailboxMessage, setMailboxMessage] = useState("");
+  const [showMailboxDetails, setShowMailboxDetails] = useState(false);`,
 );
 
 replace(
@@ -59,11 +68,9 @@ replace(
       const ownerKey = localStorage.getItem(JOURNAL_OWNER_KEY) || "";
       const readKey = localStorage.getItem(JOURNAL_READ_KEY) || "";
       const replyKey = localStorage.getItem(JOURNAL_REPLY_KEY) || "";
-      const syncedAt = localStorage.getItem(JOURNAL_SYNCED_KEY) || "";
       if (VAULT_KEY_PATTERN.test(ownerKey)) setVaultOwnerKey(ownerKey);
       if (VAULT_KEY_PATTERN.test(readKey)) setVaultReadKey(readKey);
-      if (VAULT_KEY_PATTERN.test(replyKey)) setVaultReplyKey(replyKey);
-      if (syncedAt) setVaultSyncedAt(syncedAt);`,
+      if (VAULT_KEY_PATTERN.test(replyKey)) setVaultReplyKey(replyKey);`,
 );
 
 replace(
@@ -93,7 +100,29 @@ replace(
     };
   }
 
-  async function syncCurrentDiary() {
+  function makeReplyInstruction(diary: Diary, readKey: string, replyKey: string) {
+    return [
+      "请读取我的绯界日记并直接回信。",
+      "指定日记 ID：" + diary.id,
+      "读信钥匙：" + readKey,
+      "回信钥匙：" + replyKey,
+      "档案接口：" + VAULT_API_URL,
+      "",
+      "请只读取这篇指定日记；根据标题和正文写一封完整回信，然后使用回信钥匙把回信写入该记录的 note 字段，不要修改日记原文。",
+    ].join("\\n");
+  }
+
+  async function copyInstruction(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      window.prompt("复制这段 AI 指令：", text);
+      return false;
+    }
+  }
+
+  async function sendCurrentDiary() {
     if (!current || mailboxBusy) return;
     let ownerKey = vaultOwnerKey;
     let readKey = vaultReadKey;
@@ -105,7 +134,9 @@ replace(
     localStorage.setItem(JOURNAL_OWNER_KEY, ownerKey);
     localStorage.setItem(JOURNAL_READ_KEY, readKey);
     localStorage.setItem(JOURNAL_REPLY_KEY, replyKey);
-    setMailboxBusy("sync"); setMailboxMessage(vaultSyncedAt ? "正在同步这篇日记的最新内容……" : "正在把这封信放进 AI 信箱……");
+    const hadSent = Boolean(current.vaultSyncedAt);
+    setMailboxBusy("send");
+    setMailboxMessage(hadSent ? "正在更新这篇日记……" : "正在把这篇日记送进 AI 信箱……");
     try {
       const response = await fetch(VAULT_API_URL, {
         method: "PUT",
@@ -118,29 +149,20 @@ replace(
         }),
       });
       const result = await response.json() as { error?: string; syncedAt?: string };
-      if (!response.ok || !result.syncedAt) throw new Error(result.error || "同步失败");
-      setVaultSyncedAt(result.syncedAt);
-      localStorage.setItem(JOURNAL_SYNCED_KEY, result.syncedAt);
-      setMailboxMessage(vaultSyncedAt ? "日记最新内容已经同步。🔄" : "信已寄出。现在可以复制 AI 读信指令。📮");
+      if (!response.ok || !result.syncedAt) throw new Error(result.error || "发送失败");
+      const syncedAt = new Date(result.syncedAt).getTime();
+      const fingerprint = diaryFingerprint(current);
+      persist(diaries.map((diary) => diary.id === current.id ? { ...diary, vaultSyncedAt: syncedAt, vaultFingerprint: fingerprint } : diary));
+      const copied = await copyInstruction(makeReplyInstruction(current, readKey, replyKey));
+      setMailboxMessage(copied ? (hadSent ? "日记已更新，AI 读信指令也已复制。✨" : "日记已发送，AI 读信指令也已复制。✨") : (hadSent ? "日记已更新，请复制弹窗里的 AI 指令。" : "日记已发送，请复制弹窗里的 AI 指令。"));
     } catch (error) {
-      setMailboxMessage(error instanceof Error ? error.message : "同步暂时没有成功");
+      setMailboxMessage(error instanceof Error ? error.message : "发送暂时没有成功");
     } finally { setMailboxBusy(null); }
   }
 
-  async function copyReplyInstruction() {
-    if (!current) return;
-    if (!vaultReadKey || !vaultReplyKey) {
-      setMailboxMessage("请先点击“寄给 AI”，生成读信与回信钥匙。");
-      return;
-    }
-    const text = \`请读取我的绯界日记并直接回信。\\n指定日记 ID：${'${current.id}'}\\n读信钥匙：${'${vaultReadKey}'}\\n回信钥匙：${'${vaultReplyKey}'}\\n档案接口：${'${VAULT_API_URL}'}\\n\\n请只读取这篇指定日记；根据标题和正文写一封完整回信，然后使用回信钥匙把回信写入该记录的 note 字段，不要修改日记原文。\`;
-    try { await navigator.clipboard.writeText(text); setMailboxMessage("AI 读信与回信指令已经复制。✨"); }
-    catch { window.prompt("复制这段 AI 指令：", text); }
-  }
-
   async function pullReply() {
-    if (!current || !VAULT_KEY_PATTERN.test(vaultOwnerKey) || mailboxBusy) {
-      if (!vaultOwnerKey) setMailboxMessage("请先把这封信寄给 AI。");
+    if (!current || !current.vaultSyncedAt || !VAULT_KEY_PATTERN.test(vaultOwnerKey) || mailboxBusy) {
+      if (current && !current.vaultSyncedAt) setMailboxMessage("请先发送这篇日记。");
       return;
     }
     setMailboxBusy("pull"); setMailboxMessage("正在打开信箱查看回音……");
@@ -149,10 +171,11 @@ replace(
       const result = await response.json() as { error?: string; records?: Array<{ id?: string; note?: string; noteUpdatedAt?: string }> };
       if (!response.ok) throw new Error(result.error || "收信失败");
       const cloud = (result.records || []).find((item) => item.id === current.id);
-      if (!cloud?.note?.trim()) { setMailboxMessage("还没有新回信，再等等看吧。"); return; }
+      if (!cloud?.note?.trim()) { setMailboxMessage("暂时没有新回信。"); return; }
       const replyAt = cloud.noteUpdatedAt ? new Date(cloud.noteUpdatedAt).getTime() : Date.now();
       persist(diaries.map((diary) => diary.id === current.id ? { ...diary, reply: cloud.note, replyAt } : diary));
       setMailboxMessage("回信已经收到，并放进这篇日记里了。✉️");
+      window.setTimeout(() => document.querySelector(".journal-reader aside")?.scrollIntoView({ behavior: "smooth", block: "center" }), 80);
     } catch (error) {
       setMailboxMessage(error instanceof Error ? error.message : "收信暂时没有成功");
     } finally { setMailboxBusy(null); }
@@ -162,18 +185,23 @@ replace(
 replace(
   `{current.reply ? <aside><b>机的回音</b><p>{current.reply}</p><time>落笔于 {formatDate(current.replyAt)}</time></aside> : <button className="journal-reply" onClick={requestReply}>呼唤机回信</button>}`,
   `{current.reply ? <aside><b>机的回音</b><p>{current.reply}</p><time>落笔于 {formatDate(current.replyAt)}</time></aside> : null}
-            <section className="journal-mailbox">
-              <header><div><b>AI 信箱</b><small>{vaultSyncedAt ? \`最近寄出 ${'${formatDate(new Date(vaultSyncedAt).getTime())}'}\` : "这封信尚未寄出"}</small></div><span>{current.reply ? "已回音" : vaultSyncedAt ? "等待回信" : "本地保存"}</span></header>
-              <div className="journal-mailbox-actions">
-                <button onClick={syncCurrentDiary} disabled={Boolean(mailboxBusy)}>{mailboxBusy === "sync" ? "处理中…" : "📮 寄给 AI"}</button>
-                <button onClick={syncCurrentDiary} disabled={!vaultSyncedAt || Boolean(mailboxBusy)}>🔄 同步日记</button>
-                <button onClick={copyReplyInstruction} disabled={!vaultReadKey}>🗝 复制读信指令</button>
-                <button onClick={pullReply} disabled={Boolean(mailboxBusy)}>{mailboxBusy === "pull" ? "收信中…" : "📥 收取回信"}</button>
-              </div>
-              <dl><div><dt>读信钥匙</dt><dd>{maskedVaultKey(vaultReadKey)}</dd></div><div><dt>回信钥匙</dt><dd>{maskedVaultKey(vaultReplyKey)}</dd></div><div><dt>日记 ID</dt><dd>{current.id}</dd></div></dl>
-              {mailboxMessage ? <p className="journal-mailbox-message">{mailboxMessage}</p> : null}
-            </section>`,
+            {(() => {
+              const sent = Boolean(current.vaultSyncedAt);
+              const changed = sent && current.vaultFingerprint !== diaryFingerprint(current);
+              const stateText = current.reply ? "💌 已回信" : changed ? "✎ 有未同步修改" : sent ? "☁ 等待回信" : "○ 仅本地";
+              const sendText = mailboxBusy === "send" ? "处理中…" : sent ? (changed ? "🔄 更新并发送" : "🔄 重新发送") : "📨 发送给 AI";
+              return <section className="journal-mailbox">
+                <header><div><b>AI 信箱</b><small>{sent ? \`最近发送 ${'${formatDate(current.vaultSyncedAt)}'}\` : "这篇日记还没有发送"}</small></div><span>{stateText}</span></header>
+                <div className="journal-mailbox-actions">
+                  <button onClick={sendCurrentDiary} disabled={Boolean(mailboxBusy)}>{sendText}</button>
+                  <button onClick={pullReply} disabled={!sent || Boolean(mailboxBusy)}>{mailboxBusy === "pull" ? "收信中…" : current.reply ? "📥 检查新回信" : "📥 检查回信"}</button>
+                </div>
+                <button className="journal-mailbox-details-toggle" onClick={() => setShowMailboxDetails((value) => !value)}>{showMailboxDetails ? "收起高级信息" : "▸ 高级信息"}</button>
+                {showMailboxDetails ? <dl><div><dt>读信钥匙</dt><dd>{maskedVaultKey(vaultReadKey)}</dd></div><div><dt>回信钥匙</dt><dd>{maskedVaultKey(vaultReplyKey)}</dd></div><div><dt>日记编号</dt><dd>JR-{String(diaries.findIndex((diary) => diary.id === current.id) + 1).padStart(4, "0")}</dd></div><div><dt>真实 ID</dt><dd><button onClick={() => navigator.clipboard.writeText(current.id)}>复制</button></dd></div></dl> : null}
+                {mailboxMessage ? <p className="journal-mailbox-message">{mailboxMessage}</p> : null}
+              </section>;
+            })()}`,
 );
 
 fs.writeFileSync(path, source);
-console.log("Applied Crimson Journal AI mailbox patch.");
+console.log("Applied simplified Crimson Journal AI mailbox workflow.");
