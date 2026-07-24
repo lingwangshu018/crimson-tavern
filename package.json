@@ -6,7 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "patch:ui": "node scripts/apply-v2-card-system.mjs && node scripts/apply-menu-studio.mjs && node scripts/apply-opening-scene.mjs && node scripts/apply-opening-preference.mjs && node scripts/apply-world-nav.mjs && node scripts/apply-journal-ai-mailbox.mjs && node scripts/apply-journal-paper-polish.mjs",
+    "patch:ui": "node scripts/apply-v2-card-system.mjs && node scripts/apply-menu-studio.mjs && node scripts/apply-opening-scene.mjs && node scripts/apply-opening-preference.mjs && node scripts/apply-world-nav.mjs && node scripts/apply-journal-ai-mailbox.mjs && node scripts/apply-journal-paper-polish.mjs && node scripts/apply-cloud-orb-top-layer.mjs",
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "npm run patch:ui && WRANGLER_LOG_PATH=.wrangler/wrangler.log vite",
     "build": "bash scripts/build-verified.sh",
