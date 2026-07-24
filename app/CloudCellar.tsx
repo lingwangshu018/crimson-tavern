@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import "./cloud-cellar.css";
 
 const HISTORY_KEY = "crimson-tavern.history.v1";
@@ -10,17 +10,32 @@ const OWNER_KEY = "crimson-tavern.vault-owner-key.v1";
 const READ_KEY = "crimson-tavern.vault-read-key.v1";
 const NOTE_KEY = "crimson-tavern.vault-note-key.v1";
 const SYNCED_AT_KEY = "crimson-tavern.vault-synced-at.v1";
+const POSITION_KEY = "crimson-tavern.cloud-orb-position.v1";
 const API_URL = "https://crimson-tavern.boarder-72pound.chatgpt.site/api/vault";
 const KEY_PATTERN = /^ctv1_[A-Za-z0-9_-]{43}$/;
+const ORB_SIZE = 62;
+const EDGE_GAP = 14;
 
 type CloudRecord = Record<string, unknown>;
+type OrbPosition = { x: number; y: number };
 
 function read(key: string) {
   try { return window.localStorage.getItem(key) || ""; } catch { return ""; }
 }
 
 function write(key: string, value: string) {
-  window.localStorage.setItem(key, value);
+  try { window.localStorage.setItem(key, value); } catch {}
+}
+
+function clampPosition(position: OrbPosition): OrbPosition {
+  return {
+    x: Math.min(Math.max(EDGE_GAP, position.x), Math.max(EDGE_GAP, window.innerWidth - ORB_SIZE - EDGE_GAP)),
+    y: Math.min(Math.max(EDGE_GAP, position.y), Math.max(EDGE_GAP, window.innerHeight - ORB_SIZE - EDGE_GAP)),
+  };
+}
+
+function defaultPosition(): OrbPosition {
+  return { x: window.innerWidth - ORB_SIZE - EDGE_GAP, y: Math.max(96, window.innerHeight * 0.34) };
 }
 
 function makeKey() {
@@ -43,6 +58,9 @@ export function CloudCellar() {
   const [syncedAt, setSyncedAt] = useState("");
   const [guestName, setGuestName] = useState("客人");
   const [recordCount, setRecordCount] = useState(0);
+  const [position, setPosition] = useState<OrbPosition | null>(null);
+  const dragRef = useRef<{ pointerId: number; offsetX: number; offsetY: number; moved: boolean } | null>(null);
+  const suppressClickRef = useRef(false);
 
   useEffect(() => {
     setOwnerKey(read(OWNER_KEY));
@@ -52,7 +70,70 @@ export function CloudCellar() {
       const history = JSON.parse(read(HISTORY_KEY) || "[]");
       setRecordCount(Array.isArray(history) ? history.length : 0);
     } catch {}
+    try {
+      const saved = JSON.parse(read(POSITION_KEY) || "null") as OrbPosition | null;
+      setPosition(clampPosition(saved && Number.isFinite(saved.x) && Number.isFinite(saved.y) ? saved : defaultPosition()));
+    } catch {
+      setPosition(clampPosition(defaultPosition()));
+    }
   }, []);
+
+  useEffect(() => {
+    function keepOnScreen() {
+      setPosition((current) => current ? clampPosition(current) : clampPosition(defaultPosition()));
+    }
+    window.addEventListener("resize", keepOnScreen);
+    return () => window.removeEventListener("resize", keepOnScreen);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  function beginDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (!position) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - position.x,
+      offsetY: event.clientY - position.y,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const next = clampPosition({ x: event.clientX - drag.offsetX, y: event.clientY - drag.offsetY });
+    if (Math.abs(next.x - (position?.x ?? next.x)) > 3 || Math.abs(next.y - (position?.y ?? next.y)) > 3) drag.moved = true;
+    setPosition(next);
+  }
+
+  function endDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    if (drag.moved) {
+      suppressClickRef.current = true;
+      if (position) write(POSITION_KEY, JSON.stringify(position));
+      window.setTimeout(() => { suppressClickRef.current = false; }, 0);
+    }
+    dragRef.current = null;
+  }
+
+  function openArchive() {
+    if (suppressClickRef.current) return;
+    setOpen(true);
+  }
 
   async function saveToCloud() {
     if (busy) return;
@@ -64,7 +145,6 @@ export function CloudCellar() {
       let noteKey = read(NOTE_KEY);
       if (!KEY_PATTERN.test(readKey) || readKey === currentOwner) readKey = makeKey();
       if (!KEY_PATTERN.test(noteKey) || noteKey === currentOwner || noteKey === readKey) noteKey = makeKey();
-
       const records = JSON.parse(read(HISTORY_KEY) || "[]") as CloudRecord[];
       const settings = JSON.parse(read(SETTINGS_KEY) || "{}") as Record<string, unknown>;
       const guest = String(settings.guest || read(GUEST_NAME_KEY) || "客人");
@@ -76,7 +156,6 @@ export function CloudCellar() {
       });
       const result = (await response.json()) as { error?: string; syncedAt?: string; recordCount?: number };
       if (!response.ok || !result.syncedAt) throw new Error(result.error || "云存档失败");
-
       write(OWNER_KEY, currentOwner);
       write(READ_KEY, readKey);
       write(NOTE_KEY, noteKey);
@@ -104,7 +183,6 @@ export function CloudCellar() {
       const response = await fetch(`${API_URL}?limit=250`, { headers: { Authorization: `Bearer ${key}`, Accept: "application/json" } });
       const result = (await response.json()) as { error?: string; access?: string; records?: CloudRecord[]; updatedAt?: string };
       if (!response.ok || result.access !== "owner") throw new Error(result.error || "这把钥匙无法开启常客酒窖");
-
       const records = Array.isArray(result.records) ? result.records : [];
       const first = records[0] as { guest?: unknown; bartender?: unknown } | undefined;
       const oldSettings = JSON.parse(read(SETTINGS_KEY) || "{}") as Record<string, unknown>;
@@ -136,47 +214,59 @@ export function CloudCellar() {
     }
   }
 
+  if (!position) return null;
+
   return (
-    <aside className={`cloud-cellar ${open ? "is-open" : ""}`} aria-label="酒馆档案">
-      <button className="cellar-tab" type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
-        <span>📜</span><strong>酒馆档案</strong><i className={ownerKey ? "online" : ""} />
+    <>
+      <button
+        className={`cellar-orb ${ownerKey ? "is-synced" : ""}`}
+        style={{ left: position.x, top: position.y }}
+        type="button"
+        aria-label="打开酒馆档案；按住可拖动"
+        onClick={openArchive}
+        onPointerDown={beginDrag}
+        onPointerMove={moveDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <span>📜</span>
+        <i />
       </button>
+
       {open ? (
-        <div className="cellar-card">
-          <header>
-            <div><p>CRIMSON TAVERN ARCHIVE</p><h2>酒馆档案</h2></div>
-            <button className="cellar-close" type="button" onClick={() => setOpen(false)} aria-label="关闭">×</button>
-          </header>
-          <div className="archive-summary">
-            <div><span>常客</span><strong>{guestName}</strong></div>
-            <div><span>酒架藏酒</span><strong>{recordCount} 杯</strong></div>
-            <div><span>云端状态</span><strong>{ownerKey ? "已登记" : "尚未登记"}</strong></div>
-            <div><span>上次同步</span><strong>{syncedAt ? new Date(syncedAt).toLocaleString("zh-CN") : "尚未同步"}</strong></div>
-          </div>
-
-          <section>
-            <h3>☁️ 云端保管</h3>
-            <p className="cellar-intro">酒馆会替你保存酒签、随杯手记与客人称呼。</p>
-            <button className="cellar-primary" type="button" disabled={Boolean(busy)} onClick={saveToCloud}>
-              {busy === "save" ? "正在封存账簿……" : ownerKey ? "更新云端档案" : "交给酒馆保管"}
-            </button>
+        <div className="cellar-backdrop" role="dialog" aria-modal="true" aria-label="酒馆档案" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+          <section className="cellar-card">
+            <header>
+              <div><p>CRIMSON TAVERN ARCHIVE</p><h2>酒馆档案</h2></div>
+              <button className="cellar-close" type="button" onClick={() => setOpen(false)} aria-label="关闭">×</button>
+            </header>
+            <div className="archive-summary">
+              <div><span>常客</span><strong>{guestName}</strong></div>
+              <div><span>酒架藏酒</span><strong>{recordCount} 杯</strong></div>
+              <div><span>云端状态</span><strong>{ownerKey ? "已登记" : "尚未登记"}</strong></div>
+              <div><span>上次同步</span><strong>{syncedAt ? new Date(syncedAt).toLocaleString("zh-CN") : "尚未同步"}</strong></div>
+            </div>
+            <section>
+              <h3>☁️ 云端保管</h3>
+              <p className="cellar-intro">酒馆会替你保存酒签、随杯手记与客人称呼。</p>
+              <button className="cellar-primary" type="button" disabled={Boolean(busy)} onClick={saveToCloud}>
+                {busy === "save" ? "正在封存账簿……" : ownerKey ? "更新云端档案" : "交给酒馆保管"}
+              </button>
+            </section>
+            {ownerKey ? <section className="key-section"><h3>🔑 常客钥匙</h3><div className="patron-key"><code>{mask(ownerKey)}</code><button type="button" onClick={copyKey}>复制钥匙</button></div><small>这是酒馆认出你的凭证，请妥善保管。</small></section> : null}
+            <div className="cellar-divider"><span>换设备回来</span></div>
+            <section>
+              <h3>📥 恢复酒馆档案</h3>
+              <input value={restoreKey} onChange={(event) => setRestoreKey(event.target.value)} placeholder="粘贴 ctv1_ 开头的常客钥匙" autoComplete="off" spellCheck={false} />
+              <button className="cellar-secondary" type="button" disabled={Boolean(busy)} onClick={restoreFromCloud}>
+                {busy === "restore" ? "正在开启酒窖……" : "我带着常客钥匙"}
+              </button>
+            </section>
+            {message ? <p className="cellar-message" role="status">{message}</p> : null}
+            <p className="cellar-warning">常客钥匙等同于档案密码。请勿公开分享，遗失后酒馆无法代为找回。</p>
           </section>
-
-          {ownerKey ? <section className="key-section"><h3>🔑 常客钥匙</h3><div className="patron-key"><code>{mask(ownerKey)}</code><button type="button" onClick={copyKey}>复制钥匙</button></div><small>这是酒馆认出你的凭证，请妥善保管。</small></section> : null}
-
-          <div className="cellar-divider"><span>换设备回来</span></div>
-          <section>
-            <h3>📥 恢复酒馆档案</h3>
-            <input value={restoreKey} onChange={(event) => setRestoreKey(event.target.value)} placeholder="粘贴 ctv1_ 开头的常客钥匙" autoComplete="off" spellCheck={false} />
-            <button className="cellar-secondary" type="button" disabled={Boolean(busy)} onClick={restoreFromCloud}>
-              {busy === "restore" ? "正在开启酒窖……" : "我带着常客钥匙"}
-            </button>
-          </section>
-
-          {message ? <p className="cellar-message" role="status">{message}</p> : null}
-          <p className="cellar-warning">常客钥匙等同于档案密码。请勿公开分享，遗失后酒馆无法代为找回。</p>
         </div>
       ) : null}
-    </aside>
+    </>
   );
 }
