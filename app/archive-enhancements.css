@@ -1,16 +1,19 @@
 .diary-meta-actions {
   display: flex;
-  gap: 10px;
-  padding: 0 20px 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-left: auto;
 }
 
 .diary-meta-button {
   border: 1px solid rgba(203, 168, 107, 0.28);
   border-radius: 999px;
-  padding: 7px 12px;
+  padding: 7px 11px;
   color: var(--muted);
   background: rgba(10, 4, 6, 0.52);
-  font-size: 12px;
+  font-size: 11px;
+  white-space: nowrap;
   cursor: pointer;
   transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 }
@@ -27,34 +30,41 @@
   background: rgba(79, 17, 29, 0.58);
 }
 
-.record-card.is-pinned {
+.record-card.is-diary-pinned {
   border-color: rgba(241, 217, 166, 0.58);
   box-shadow: 0 0 0 1px rgba(241, 217, 166, 0.08), 0 20px 48px rgba(0, 0, 0, 0.28);
 }
 
-.record-card.is-pinned::before {
-  content: "置顶日记";
-  position: absolute;
-  top: 10px;
-  right: 18px;
+.record-card.is-diary-pinned .record-main > strong::after {
+  content: "  📌";
   color: var(--gold-bright);
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: 0.8em;
 }
 
-.record-card.is-favorite .record-main > strong::after {
-  content: " ★";
+.record-card.is-diary-favorite .record-main > strong::after {
+  content: "  ★";
   color: var(--gold-bright);
 }
 
-.record-card {
-  position: relative;
+.record-card.is-diary-pinned.is-diary-favorite .record-main > strong::after {
+  content: "  📌 ★";
+}
+
+.notebook-head {
+  gap: 14px;
+  align-items: flex-start;
 }
 
 @media (max-width: 720px) {
+  .notebook-head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
   .diary-meta-actions {
-    padding-right: 14px;
-    padding-left: 14px;
+    grid-column: 1 / -1;
+    width: 100%;
+    justify-content: stretch;
   }
 
   .diary-meta-button {
