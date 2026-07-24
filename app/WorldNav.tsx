@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { JournalRoom } from "./JournalRoom";
+import { TimeWheelRoom } from "./TimeWheelRoom";
 import "./world-nav.css";
 
 type SpaceId = "tavern" | "cafe" | "journal" | "wheel";
@@ -184,6 +185,8 @@ export function WorldNav() {
 
       {active === "journal" ? (
         <JournalRoom onClose={() => selectSpace(spaces[0])} />
+      ) : active === "wheel" ? (
+        <TimeWheelRoom onClose={() => selectSpace(spaces[0])} />
       ) : active !== "tavern" ? (
         <section className={`world-room-preview room-${active}`} aria-live="polite">
           <div className="world-room-card">
