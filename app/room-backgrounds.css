@@ -27,31 +27,30 @@
   z-index: 2;
 }
 
+/* Apply the uploaded library artwork to the actual room root instead of a decorative pseudo-element. */
 .journal-room {
   position: fixed;
   isolation: isolate;
-  background: #100908 !important;
-}
-
-.journal-room::before {
-  position: fixed !important;
-  z-index: -2 !important;
-  inset: 0 !important;
-  width: auto !important;
-  height: auto !important;
-  transform: none !important;
-  content: "" !important;
-  pointer-events: none;
+  background-color: #100908 !important;
   background-image:
-    linear-gradient(rgba(9, 5, 5, 0.26), rgba(9, 5, 5, 0.62)),
+    linear-gradient(rgba(9, 5, 5, 0.34), rgba(9, 5, 5, 0.62)),
     url("https://lingwangshu018.github.io/crimson-world/assets/library-bg.webp") !important;
   background-size: cover !important;
   background-position: center center !important;
   background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 
-.journal-room::after {
-  z-index: -1 !important;
+/* Preserve the journal's existing decorative overlay without letting it replace the room background. */
+.journal-room::before {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.26),
+    transparent 22%,
+    transparent 78%,
+    rgba(0, 0, 0, 0.26)
+  ) !important;
+  pointer-events: none;
 }
 
 @media (max-width: 720px) {
@@ -60,7 +59,8 @@
     background-position: 50% 20% !important;
   }
 
-  .journal-room::before {
+  .journal-room {
     background-position: 48% center !important;
+    background-attachment: scroll !important;
   }
 }
