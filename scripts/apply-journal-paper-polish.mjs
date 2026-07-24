@@ -36,7 +36,7 @@ replace(
   function openCloudMailbox() {
     setMessengerOpen(false);
     if (view !== "read" || !current) {
-      window.alert("请先打开一篇日记，再前往它的云端信箱。☁️");
+      window.alert("请先打开一篇日记，再把它存入云端。☁️");
       return;
     }
     window.setTimeout(() => {
@@ -66,17 +66,17 @@ replace(
   '    </section>\n  );',
   `      <div className={\`journal-messenger ${'${messengerOpen ? "open" : ""}'}\`}>
         {messengerOpen ? (
-          <div className="journal-messenger-panel" role="menu" aria-label="信使卷轴">
-            <header><span>📜</span><div><b>信使卷轴</b><small>MESSENGER SCROLL</small></div></header>
-            <button type="button" role="menuitem" onClick={openCloudMailbox}><span>☁️</span><div><b>云端信箱</b><small>{view === "read" && current ? "前往当前日记的 AI 信箱" : "打开日记后可用"}</small></div></button>
+          <div className="journal-messenger-panel" role="menu" aria-label="云端卷轴菜单">
+            <header><span>📜</span><div><b>云端卷轴</b><small>CLOUD SCROLL</small></div></header>
+            <button type="button" role="menuitem" onClick={openCloudMailbox}><span>☁️</span><div><b>存入云端</b><small>{view === "read" && current ? "打开当前日记的云端信箱" : "打开一篇日记后可用"}</small></div></button>
             <button type="button" role="menuitem" onClick={returnFromCurrentPage}><span>✈️</span><div><b>{view === "list" ? "返回绯界" : "返回日记本"}</b><small>{view === "list" ? "回到上一间房间" : "回到全部心事"}</small></div></button>
           </div>
         ) : null}
-        <button className="journal-messenger-toggle" type="button" aria-label={messengerOpen ? "收起信使卷轴" : "展开信使卷轴"} aria-expanded={messengerOpen} onClick={() => setMessengerOpen((value) => !value)}><span aria-hidden="true">📜</span></button>
+        <button className="journal-messenger-toggle" type="button" aria-label={messengerOpen ? "收起云端卷轴" : "展开云端卷轴"} aria-expanded={messengerOpen} onClick={() => setMessengerOpen((value) => !value)}><span aria-hidden="true">📜</span><i aria-hidden="true" /></button>
       </div>
     </section>
   );`,
 );
 
 fs.writeFileSync(path, source);
-console.log("Applied journal paper polish and universal messenger menu.");
+console.log("Applied journal paper polish and reused cloud scroll as universal menu.");
